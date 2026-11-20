@@ -274,3 +274,25 @@ Generate clean, modular, bug-free TypeScript code with smooth state synchronizat
 ### Turn 17 — Full Knowledge Export (Current Turn)
 * **User:** Requested all competition context, empirical data, and complete conversation logs in a downloadable `.md` file for other AI tools to assist in project development.
 * **Assistant:** Generated this comprehensive Markdown file (`stack2026_classpause_full_context.md`).
+---
+
+## 6. HANDBOOK RULES THAT AFFECT THE BUILD (extracted 2026-11-20)
+
+Full member names (from submitted abstract): Al-Ghani Desta Setyawan (Leader), Andhika Galih Isya Putra, Johann Ariel Givel Filemon Silalahi.
+
+**Proposal (PDF, ≤10 content pages, no template)** must contain these sections:
+1. Project and Team Identity: title, team, case, members and roles.
+2. Problem and User Analysis: context, target users, evidence, existing alternatives.
+3. Proposed Solution: value, scope, main user journey, distinguishing features.
+4. Technical Design: core features, architecture/system flow, technologies, data sources.
+5. Development Plan: milestones, current progress, member contributions, planned Final Day tasks.
+6. Validation and Impact: validation plan or early tests, expected benefit, risks, privacy, sustainability.
+7. References and Declaration: third-party resources, material AI assistance, references, signed originality declaration.
+
+**Video (≤2 min, 1080p, English):** introduce team, problem and solution, show a user flow or prototype, and state what is completed vs. what remains.
+
+**Final Day:** continue this repo (no restart); record the starting commit at check-in; keep 2–3 substantive tasks; prepare setup instructions, demo access and a local fallback; no secrets in the repo; summarize session changes in README at cutoff. Product needs at least one complete core user flow.
+
+**Data:** demonstrations should use authorized or synthetic data. Material AI assistance must be disclosed in the proposal and README.
+
+Source files converted with markitdown live in `docs/sources/` (git-ignored: third-party handbook content).
