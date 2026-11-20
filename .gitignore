@@ -1,0 +1,5 @@
+node_modules
+.next
+.codegraph
+*.tsbuildinfo
+next-env.d.ts
