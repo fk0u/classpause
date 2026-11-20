@@ -3,3 +3,4 @@ node_modules
 .codegraph
 *.tsbuildinfo
 next-env.d.ts
+.ruas/ruas.db
