@@ -6,6 +6,7 @@ import { X, ArrowRight, ArrowLeft, Loader2, BadgeCheck, Sparkles } from "lucide-
 import type { getStudentView } from "@/lib/queries";
 import { submitQuizAction } from "@/app/actions";
 import { useLive } from "@/components/live";
+import { useT, fmt } from "@/lib/i18n/client";
 
 type Ses = Awaited<ReturnType<typeof getStudentView>>["sessions"][number];
 
@@ -17,6 +18,7 @@ export default function MicroPause({ session, onClose }: { session: Ses; onClose
   const [receipt, setReceipt] = useState<{ code: string; correct: number; total: number } | null>(null);
   const [pending, start] = useTransition();
   const { toast } = useLive();
+  const t = useT();
   const inQuiz = step === mod.steps.length;
 
   const submit = () => start(async () => {
@@ -39,7 +41,7 @@ export default function MicroPause({ session, onClose }: { session: Ses; onClose
               <h2 className="mt-1 font-display text-3xl font-semibold leading-tight">{mod.title}</h2>
               <p className="text-sm text-ink/60">{session.klass.name}</p>
             </div>
-            <button onClick={onClose} aria-label="Close" className="rounded-full bg-white p-2 hover:bg-white/80"><X size={18} /></button>
+            <button onClick={onClose} aria-label={t.common.close} className="rounded-full bg-white p-2 hover:bg-white/80"><X size={18} /></button>
           </div>
           {!receipt && (
             <div className="mt-4 flex gap-1.5">
@@ -60,17 +62,17 @@ export default function MicroPause({ session, onClose }: { session: Ses; onClose
                   className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-mint text-mint-deep shadow-xl shadow-mint-deep/30">
                   <BadgeCheck size={48} />
                 </motion.div>
-                <h3 className="mt-5 font-display text-2xl font-bold">Attendance logged</h3>
-                <p className="mt-1 text-slate-500">Score {receipt.correct}/{receipt.total}. Your komti and lecturer can see this receipt.</p>
+                <h3 className="mt-5 font-display text-2xl font-bold">{t.pause.logged}</h3>
+                <p className="mt-1 text-slate-500">{fmt(t.pause.loggedLead, { c: receipt.correct, t: receipt.total })}</p>
                 <div className="ticket mx-auto mt-6 max-w-xs rounded-2xl border-2 border-dashed border-slate-300 bg-white p-4 font-mono text-sm">
-                  <p className="text-slate-500">Receipt</p>
+                  <p className="text-slate-500">{t.pause.receipt}</p>
                   <p className="text-2xl font-bold tracking-wider text-ink">{receipt.code}</p>
                 </div>
-                <button onClick={onClose} className="mt-6 min-h-12 w-full rounded-full bg-ink font-semibold text-white">Done</button>
+                <button onClick={onClose} className="mt-6 min-h-12 w-full rounded-full bg-ink font-semibold text-white">{t.common.done}</button>
               </motion.div>
             ) : inQuiz ? (
               <motion.div key="quiz" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="space-y-5">
-                <p className="flex items-center gap-2 font-display text-lg font-bold"><Sparkles size={18} className="text-lilac-deep" /> Quick check</p>
+                <p className="flex items-center gap-2 font-display text-lg font-bold"><Sparkles size={18} className="text-lilac-deep" /> {t.pause.quick}</p>
                 {mod.quiz.map((q, qi) => (
                   <fieldset key={qi}>
                     <legend className="mb-2 font-semibold">{qi + 1}. {q.q}</legend>
@@ -91,7 +93,7 @@ export default function MicroPause({ session, onClose }: { session: Ses; onClose
               </motion.div>
             ) : (
               <motion.div key={step} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
-                <p className="text-xs font-semibold uppercase tracking-widest text-lilac-deep">Step {step + 1} of {mod.steps.length}</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-lilac-deep">{fmt(t.pause.step, { n: step + 1, total: mod.steps.length })}</p>
                 <h3 className="mt-1 font-display text-2xl font-semibold">{mod.steps[step].title}</h3>
                 <p className="mt-3 text-[17px] leading-relaxed text-slate-700">{mod.steps[step].body}</p>
               </motion.div>
@@ -101,15 +103,15 @@ export default function MicroPause({ session, onClose }: { session: Ses; onClose
 
         {!receipt && (
           <div className="flex gap-2 border-t border-slate-200 p-4">
-            {step > 0 && <button onClick={() => setStep(step - 1)} className="flex min-h-12 items-center gap-1 rounded-full bg-white px-5 font-semibold"><ArrowLeft size={16} /> Back</button>}
+            {step > 0 && <button onClick={() => setStep(step - 1)} className="flex min-h-12 items-center gap-1 rounded-full bg-white px-5 font-semibold"><ArrowLeft size={16} /> {t.common.back}</button>}
             {inQuiz ? (
               <button disabled={pending || answers.some((a) => a === null)} onClick={submit}
                 className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-ink font-semibold text-white disabled:opacity-40">
-                {pending ? <Loader2 className="animate-spin" size={18} /> : <BadgeCheck size={18} />} Submit &amp; log attendance
+                {pending ? <Loader2 className="animate-spin" size={18} /> : <BadgeCheck size={18} />} {t.pause.submit}
               </button>
             ) : (
               <button onClick={() => setStep(step + 1)} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-ink font-semibold text-white">
-                Next <ArrowRight size={16} />
+                {t.common.next} <ArrowRight size={16} />
               </button>
             )}
           </div>

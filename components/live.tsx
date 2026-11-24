@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, AlertTriangle, Radio, X } from "lucide-react";
+import { useT, fmt } from "@/lib/i18n/client";
 
 type Toast = { id: number; text: string; tone: "ok" | "warn" | "info"; href?: string };
 type Ctx = { toast: (text: string, tone?: Toast["tone"], href?: string) => void; connected: boolean };
@@ -18,6 +19,9 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
   const [connected, setConnected] = useState(false);
   const tid = useRef(0);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const t = useT();
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const toast = useCallback((text: string, tone: Toast["tone"] = "info", href?: string) => {
     const id = ++tid.current;
@@ -32,7 +36,9 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
     es.onmessage = (m) => {
       try {
         const e = JSON.parse(m.data);
-        toast(e.message, e.tone);
+        // Translate on the client so every viewer sees their own language.
+        const n = (tRef.current.notif as Record<string, unknown>)[e.kind] as { title: string; body: string } | undefined;
+        if (e.type !== "inbox") toast(n ? `${n.title}${e.vars?.course ? ` · ${e.vars.course}` : ""}` : e.message, e.tone);
       } catch { /* ignore */ }
       // Coalesce bursts of events into one server refresh.
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
@@ -68,13 +74,14 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
 
 export function LiveDot() {
   const { connected } = useLive();
+  const t = useT();
   return (
     <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/60" title={connected ? "Live updates connected" : "Reconnecting…"}>
       <span className="relative flex h-2 w-2">
         {connected && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald opacity-60" />}
         <span className={`relative inline-flex h-2 w-2 rounded-full ${connected ? "bg-emerald" : "bg-slate-300"}`} />
       </span>
-      {connected ? "Live" : "Offline"}
+      {connected ? t.common.live : t.common.offline}
     </span>
   );
 }

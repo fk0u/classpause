@@ -6,12 +6,18 @@ import { env } from "./env";
 import { publish } from "./bus";
 import { proposeSlots } from "./slot-engine";
 import { sendLecturerPrompt } from "./notifier";
+import { notifyUsers, rosterOf, fmt } from "./notify";
 import { atLocal, localParts, startOfLocalDay, fmtRange, fmtDay } from "./time";
 
 export const PROMPT_LEAD_MIN = 120; // H-2h
 export const SLA_GRACE_MIN = 15;    // H+15m
 
 export const hashToken = (t: string) => createHash("sha256").update(t).digest("hex");
+
+async function klassOf(classId: string) {
+  const [k] = await db.select().from(s.classes).where(eq(s.classes.id, classId)).limit(1);
+  return k;
+}
 
 async function logEvent(sessionId: string | null, type: string, message: string, actorId?: string | null) {
   await db.insert(s.events).values({ sessionId, type, message, actorId: actorId ?? null });
@@ -57,7 +63,13 @@ export async function promptSession(sessionId: string, now = new Date()) {
     text: `ClassPause: "${row.klass.name} (${row.klass.section})" starts ${fmtRange(row.ses.startsAt, row.ses.endsAt)}. Tap once to update your students.`,
   });
   await logEvent(sessionId, "prompt", `1-tap card sent to ${row.lecturer.name}`);
-  publish({ type: "prompt", sessionId, classId: row.klass.id, tone: "info", message: `H-2h: confirmation request sent to ${row.lecturer.name}` });
+  publish({ type: "prompt", kind: "prompt", vars: { course: row.klass.name }, sessionId, classId: row.klass.id, tone: "info", message: `H-2h: confirmation request sent to ${row.lecturer.name}` });
+  const n = (await rosterOf(row.klass.id)).length;
+  await notifyUsers([row.lecturer.id], "prompt", (t) => ({
+    title: t.notif.prompt.title,
+    body: fmt(t.notif.prompt.body, { course: row.klass.name, time: fmtRange(row.ses.startsAt, row.ses.endsAt), n }),
+    url: `/l/${token}`,
+  }));
   return { session: ses, token, url };
 }
 
@@ -83,7 +95,9 @@ export async function tick(now = new Date()) {
     .returning({ id: s.sessions.id, classId: s.sessions.classId });
   for (const e of expired) {
     await logEvent(e.id, "sla_expired", "No reply by H+15m: switched to Micro-Pause");
-    publish({ type: "session", sessionId: e.id, classId: e.classId, tone: "warn", message: "SLA expired at H+15m: class auto-switched to Micro-Pause" });
+    publish({ type: "session", kind: "expired", sessionId: e.id, classId: e.classId, tone: "warn", message: "SLA expired at H+15m: class auto-switched to Micro-Pause" });
+    const k = await klassOf(e.classId);
+    await notifyUsers(await rosterOf(e.classId), "expired", (t) => ({ title: t.notif.expired.title, body: fmt(t.notif.expired.body, { course: k.name }), url: "/student" }));
   }
   return { prompted: due.length, expired: expired.length };
 }
@@ -110,7 +124,16 @@ export async function respond(sessionId: string, action: keyof typeof ACTION_STA
   if (!ses) return { ok: false as const, error: "This class already has an answer." };
 
   await logEvent(sessionId, `lecturer_${action}`, ACTION_MSG[action], actorId);
-  publish({ type: "session", sessionId, classId: ses.classId, tone: action === "confirm" ? "ok" : "warn", message: ACTION_MSG[action] });
+  const key = ({ confirm: "confirmed", delay: "delayed", reschedule: "reschedule", micropause: "micropause" } as const)[action];
+  const k = await klassOf(ses.classId);
+  publish({ type: "session", kind: key, vars: { course: k.name }, sessionId, classId: ses.classId, tone: action === "confirm" ? "ok" : "warn", message: ACTION_MSG[action] });
+  const audience = await rosterOf(ses.classId);
+  if (action === "reschedule" && k.komtiId) audience.push(k.komtiId);
+  await notifyUsers(audience, key, (t) => ({
+    title: t.notif[key].title,
+    body: fmt(t.notif[key].body, { course: k.name, time: fmtRange(ses.startsAt, ses.endsAt) }),
+    url: action === "reschedule" ? "/komti" : "/student",
+  }));
   return { ok: true as const, session: ses };
 }
 
@@ -137,7 +160,11 @@ export async function lockSlot(sessionId: string, slotId: string, actorId: strin
 
   const msg = isAsync ? "Komti chose Micro-Pause + Q&A" : `Rescheduled to ${fmtDay(slot.startsAt!)} ${fmtRange(slot.startsAt!, slot.endsAt!)} · ${slot.roomCode}`;
   await logEvent(sessionId, "slot_locked", msg, actorId);
-  publish({ type: "session", sessionId, classId: ses.classId, tone: "ok", message: `Broadcast: ${msg}` });
+  publish({ type: "session", kind: isAsync ? "micropause" : "moved", vars: { course: "" }, sessionId, classId: ses.classId, tone: "ok", message: `Broadcast: ${msg}` });
+  const k = await klassOf(ses.classId);
+  await notifyUsers(await rosterOf(ses.classId), isAsync ? "micropause" : "moved", (t) => isAsync
+    ? { title: t.notif.micropause.title, body: fmt(t.notif.micropause.body, { course: k.name }), url: "/student" }
+    : { title: t.notif.moved.title, body: fmt(t.notif.moved.body, { course: k.name, when: `${fmtDay(slot.startsAt!, t.locale)} ${fmtRange(slot.startsAt!, slot.endsAt!)}`, room: slot.roomCode ?? "" }), url: "/student" });
   return { ok: true as const, slot: slot as SlotProposal };
 }
 
@@ -171,7 +198,10 @@ export async function requestPermission(sessionId: string, userId: string, type:
   if (!enr) return { ok: false as const, error: "You are not enrolled in this class." };
   await db.insert(s.permissions).values({ sessionId, userId, type, note })
     .onConflictDoUpdate({ target: [s.permissions.sessionId, s.permissions.userId], set: { type, note, status: "pending", decidedAt: null, decidedBy: null } });
-  publish({ type: "permission", sessionId, classId: enr.classId, tone: "info", message: "New permission request in the komti queue" });
+  publish({ type: "permission", kind: "request", sessionId, classId: enr.classId, tone: "info", message: "New permission request in the komti queue" });
+  const k = await klassOf(enr.classId);
+  const [who] = await db.select({ name: s.users.name }).from(s.users).where(eq(s.users.id, userId));
+  if (k.komtiId) await notifyUsers([k.komtiId], "request", (t) => ({ title: t.notif.request.title, body: fmt(t.notif.request.body, { name: who.name, course: k.name }), url: "/komti" }));
   return { ok: true as const };
 }
 
@@ -180,7 +210,9 @@ export async function decidePermission(permissionId: string, decision: "approved
     .where(and(eq(s.permissions.id, permissionId), eq(s.permissions.status, "pending"))).returning();
   if (!p) return { ok: false as const, error: "Already decided." };
   const [ses] = await db.select({ classId: s.sessions.classId }).from(s.sessions).where(eq(s.sessions.id, p.sessionId));
-  publish({ type: "permission", sessionId: p.sessionId, classId: ses.classId, tone: "ok", message: `Permission ${decision}` });
+  publish({ type: "permission", kind: "decision", sessionId: p.sessionId, classId: ses.classId, tone: "ok", message: `Permission ${decision}` });
+  const k = await klassOf(ses.classId);
+  await notifyUsers([p.userId], "decision", (t) => ({ title: fmt(t.notif.decision.title, { decision: t.notif[decision] }), body: fmt(t.notif.decision.body, { course: k.name }), url: "/student" }));
   return { ok: true as const };
 }
 

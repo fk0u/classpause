@@ -11,6 +11,7 @@ import DayTimeline from "@/components/day-timeline";
 import { fmtRange, fmtDay } from "@/lib/time";
 import MicroPause from "./micro-pause";
 import LeaveSheet from "./leave-sheet";
+import { useT, fmt } from "@/lib/i18n/client";
 
 type View = Awaited<ReturnType<typeof getStudentView>>;
 type Ses = View["sessions"][number];
@@ -18,6 +19,7 @@ type Ses = View["sessions"][number];
 export default function StudentBoard({ firstName, sessions, completedPauses }: View & { firstName: string }) {
   const [pause, setPause] = useState<Ses | null>(null);
   const [leave, setLeave] = useState<Ses | null>(null);
+  const t = useT();
 
   const safe = sessions.filter((x) => x.status === "confirmed").length;
   const hold = sessions.filter((x) => ["pending", "delayed"].includes(x.status)).length;
@@ -28,20 +30,20 @@ export default function StudentBoard({ firstName, sessions, completedPauses }: V
       <section>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-sm text-slate-500">Hi {firstName} · {fmtDay(new Date())}</p>
-            <h1 className="font-display text-4xl font-bold tracking-tight">My Commute Radar 🛰️</h1>
+            <p className="text-sm text-slate-500">{fmt(t.student.hi, { name: firstName })} · {fmtDay(new Date(), t.locale)}</p>
+            <h1 className="font-display text-4xl font-bold tracking-tight">{t.student.title}</h1>
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat n={sessions.length} label="Today" cls="bg-sky" />
-          <Stat n={safe} label="Safe to go" cls="bg-mint" badge={safe ? "🎉" : undefined} />
-          <Stat n={hold} label="On hold" cls="border-2 border-dashed border-slate-300 bg-transparent" />
-          <Stat n={freed} label="Freed up" cls="bg-lilac" />
+          <Stat n={sessions.length} label={t.student.statToday} cls="bg-sky" />
+          <Stat n={safe} label={t.student.statSafe} cls="bg-mint" badge={safe ? "🎉" : undefined} />
+          <Stat n={hold} label={t.student.statHold} cls="border-2 border-dashed border-slate-300 bg-transparent" />
+          <Stat n={freed} label={t.student.statFreed} cls="bg-lilac" />
         </div>
 
         {sessions.length === 0 && (
-          <div className="mt-6 rounded-[28px] border-2 border-dashed border-slate-300 p-10 text-center text-slate-500">No classes today. Enjoy the free day 🌴</div>
+          <div className="mt-6 rounded-[28px] border-2 border-dashed border-slate-300 p-10 text-center text-slate-500">{t.common.noClasses}</div>
         )}
 
         <ol className="relative mt-8 space-y-5 pl-8">
@@ -60,12 +62,12 @@ export default function StudentBoard({ firstName, sessions, completedPauses }: V
       </section>
 
       <aside className="space-y-5 lg:border-l lg:border-slate-200 lg:pl-8">
-        <h2 className="font-display text-3xl font-bold tracking-tight">Today 🧐</h2>
+        <h2 className="font-display text-3xl font-bold tracking-tight">{t.student.side}</h2>
         <DayTimeline items={sessions.map((x) => ({ id: x.id, title: x.klass.name, sub: x.room.code, startsAt: x.startsAt, endsAt: x.endsAt, status: x.status }))} />
         <div className="rounded-[28px] bg-white p-5">
-          <p className="text-sm text-slate-500">This semester</p>
+          <p className="text-sm text-slate-500">{t.student.semester}</p>
           <p className="mt-1 font-display text-5xl font-bold">{completedPauses}</p>
-          <p className="text-sm text-slate-500">Micro-Pause module{completedPauses === 1 ? "" : "s"} completed</p>
+          <p className="text-sm text-slate-500">{t.student.pausesDone}</p>
         </div>
       </aside>
 
@@ -86,7 +88,8 @@ function Stat({ n, label, cls, badge }: { n: number; label: string; cls: string;
 }
 
 function SessionCard({ x, onLeave }: { x: Ses; onLeave: () => void }) {
-  const st = STATUS[x.status];
+  const t = useT();
+  const st = { ...STATUS[x.status], ...t.status[x.status] };
   const tone = TONE[st.tone];
   return (
     <div className="rounded-[28px] bg-white p-5 shadow-[0_1px_0_rgba(15,23,42,0.04)]">
@@ -106,7 +109,7 @@ function SessionCard({ x, onLeave }: { x: Ses; onLeave: () => void }) {
 
       {x.status === "rescheduled" && x.lockedSlot?.startsAt && (
         <div className="mt-3 rounded-2xl bg-sky p-3 text-sm">
-          <span className="font-semibold">New slot:</span> {fmtDay(x.lockedSlot.startsAt)} · {fmtRange(x.lockedSlot.startsAt, x.lockedSlot.endsAt!)} · {x.lockedSlot.roomCode}
+          <span className="font-semibold">{t.student.newSlot}</span> {fmtDay(x.lockedSlot.startsAt, t.locale)} · {fmtRange(x.lockedSlot.startsAt, x.lockedSlot.endsAt!)} · {x.lockedSlot.roomCode}
         </div>
       )}
 
@@ -117,11 +120,11 @@ function SessionCard({ x, onLeave }: { x: Ses; onLeave: () => void }) {
         <span className="ml-auto flex items-center gap-2">
           <Avatar name={x.klass.lecturerName} size={34} />
           {x.permission ? (
-            <span className="rounded-full bg-paper px-3 py-2 text-xs font-medium text-slate-600">{x.permission.type === "sick" ? "Sick" : "Dispensation"} · {x.permission.status}</span>
+            <span className="rounded-full bg-paper px-3 py-2 text-xs font-medium text-slate-600">{x.permission.type === "sick" ? t.leave.sick : t.leave.dispensation} · {x.permission.status === "approved" ? t.komti.excused : x.permission.status === "rejected" ? t.komti.declined : "⏳"}</span>
           ) : !x.receipt && (
-            <button onClick={onLeave} aria-label="Request leave" title="Request leave"
+            <button onClick={onLeave} aria-label={t.leave.title} title={t.leave.title}
               className="flex h-10 items-center gap-1.5 rounded-full bg-paper px-3 text-sm font-medium text-slate-700 hover:bg-slate-200">
-              <FileHeart size={15} /> Leave
+              <FileHeart size={15} /> {t.student.leave}
             </button>
           )}
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-paper text-slate-500"><MoreHorizontal size={16} /></span>
@@ -133,6 +136,7 @@ function SessionCard({ x, onLeave }: { x: Ses; onLeave: () => void }) {
 
 /** The lilac "now playing" card from the reference, for an active Micro-Pause. */
 function PauseCard({ x, onPlay }: { x: Ses; onPlay: () => void }) {
+  const t = useT();
   return (
     <motion.button onClick={onPlay} whileHover={{ rotate: 0, scale: 1.01 }} initial={{ rotate: -2 }} animate={{ rotate: -1.5 }}
       className="relative block w-full overflow-hidden rounded-[32px] bg-lilac p-6 text-left shadow-xl shadow-lilac-deep/20">
@@ -140,9 +144,9 @@ function PauseCard({ x, onPlay }: { x: Ses; onPlay: () => void }) {
       <Music2 aria-hidden size={20} className="float absolute bottom-16 right-6 text-white [animation-delay:1.5s]" />
       <div className="grid items-center gap-4 sm:grid-cols-[1fr_auto]">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-lilac-deep">Micro-Pause · {x.module!.minutes} min</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-lilac-deep">{fmt(t.student.pauseKicker, { min: x.module!.minutes })}</p>
           <h3 className="mt-1 font-display text-3xl font-semibold leading-tight">{x.module!.title}</h3>
-          <p className="mt-2 text-sm text-ink/60">{x.klass.name}: lecturer is away, so learn here and your attendance is logged.</p>
+          <p className="mt-2 text-sm text-ink/60">{fmt(t.student.pauseLead, { course: x.klass.name })}</p>
         </div>
         <span className="relative mx-auto flex h-28 w-28 items-center justify-center">
           <span className="absolute inset-0 animate-ping rounded-full bg-white/40 [animation-duration:2.4s]" />
@@ -150,7 +154,7 @@ function PauseCard({ x, onPlay }: { x: Ses; onPlay: () => void }) {
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-ink"><Play size={26} fill="currentColor" /></span>
         </span>
       </div>
-      <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold">▶ Start 15-min module</span>
+      <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold">{t.student.startModule}</span>
     </motion.button>
   );
 }

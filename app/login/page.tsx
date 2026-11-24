@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { currentUser, homeFor } from "@/lib/auth";
 import { getPersonas } from "@/lib/queries";
 import PersonaPicker from "./picker";
+import { getDict } from "@/lib/i18n/server";
+import LangSwitch from "@/components/lang-switch";
 
 export const metadata = { title: "Sign in · ClassPause" };
 
@@ -15,7 +17,7 @@ const ORBIT = [
 export default async function LoginPage() {
   const u = await currentUser();
   if (u) redirect(homeFor(u.role));
-  const personas = await getPersonas();
+  const [personas, t] = await Promise.all([getPersonas(), getDict()]);
   return (
     <main className="relative min-h-dvh overflow-hidden bg-ink text-white">
       {/* floating confetti dots, like the reference */}
@@ -39,16 +41,17 @@ export default async function LoginPage() {
             <div className="absolute inset-[34%] flex items-center justify-center rounded-full bg-white/10 font-display text-3xl font-bold shadow-[0_0_60px_rgba(235,211,248,0.35)] backdrop-blur">❚❚</div>
           </div>
           <h1 className="text-center font-display text-5xl font-bold leading-[1.05] tracking-tight lg:text-left lg:text-6xl">
-            Let’s get your<br />class sorted.
+            {t.login.title1}<br />{t.login.title2}
           </h1>
           <p className="mx-auto mt-4 max-w-md text-center text-lg text-white/60 lg:mx-0 lg:text-left">
-            No more guessing whether class is on. Pick a role to step in.
+            {t.login.lead}
           </p>
         </section>
 
         <section className="rounded-[36px] bg-white p-6 text-ink sm:p-8">
-          <p className="text-center text-sm text-slate-500">Synthetic East Kalimantan campus · campus SSO replaces this in a real rollout</p>
-          <h2 className="mt-1 text-center font-display text-2xl font-bold">Choose who you are</h2>
+          <div className="flex justify-center"><LangSwitch /></div>
+          <p className="mt-4 text-center text-sm text-slate-500">{t.login.note}</p>
+          <h2 className="mt-1 text-center font-display text-2xl font-bold">{t.login.choose}</h2>
           <PersonaPicker personas={personas} />
         </section>
       </div>

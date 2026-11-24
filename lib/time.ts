@@ -23,10 +23,15 @@ export function startOfLocalDay(d: Date) {
   return atLocal(p.y, p.m, p.d, 0);
 }
 
-const timeFmt = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
-const dayFmt = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, weekday: "short", day: "numeric", month: "short" });
+const fmts = new Map<string, Intl.DateTimeFormat>();
+const f = (loc: string, o: Intl.DateTimeFormatOptions) => {
+  const k = loc + JSON.stringify(o);
+  if (!fmts.has(k)) fmts.set(k, new Intl.DateTimeFormat(loc === "id" ? "id-ID" : "en-GB", { timeZone: TZ, ...o }));
+  return fmts.get(k)!;
+};
 
-export const fmtTime = (d: Date | string) => timeFmt.format(new Date(d));
-export const fmtDay = (d: Date | string) => dayFmt.format(new Date(d));
+export const fmtTime = (d: Date | string) => f("en", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(d)).replace(".", ":");
+export const fmtDay = (d: Date | string, loc = "en") => f(loc, { weekday: "short", day: "numeric", month: "short" }).format(new Date(d));
+export const fmtDateTime = (d: Date | string, loc = "en") => `${fmtDay(d, loc)} · ${fmtTime(d)}`;
 export const fmtRange = (a: Date | string, b: Date | string) => `${fmtTime(a)}–${fmtTime(b)}`;
 export const minToHHMM = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;

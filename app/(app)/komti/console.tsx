@@ -10,6 +10,7 @@ import { SlaRing } from "@/components/countdown";
 import { Avatar } from "@/components/avatar";
 import { useLive } from "@/components/live";
 import { fmtRange, fmtDay, fmtTime } from "@/lib/time";
+import { useT, fmt } from "@/lib/i18n/client";
 
 type View = Awaited<ReturnType<typeof getKomtiView>>;
 
@@ -18,19 +19,20 @@ export default function KomtiConsole({ sessions, permissions, feed }: View) {
   const timers = sessions.filter((x) => x.status === "pending");
   const resched = sessions.find((x) => x.status === "reschedule");
   const receipts = sessions.reduce((n, x) => n + x.receipts, 0);
+  const t = useT();
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <section className="min-w-0">
-        <p className="text-sm text-slate-500">Komti · Informatics ’26 Class A</p>
-        <h1 className="font-display text-4xl font-bold tracking-tight">Class Operations 🧭</h1>
+        <p className="text-sm text-slate-500">{t.komti.kicker}</p>
+        <h1 className="font-display text-4xl font-bold tracking-tight">{t.komti.title}</h1>
 
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { n: sessions.length, k: "Classes today", c: "bg-sky" },
-            { n: timers.length, k: "SLA timers", c: "bg-butter" },
-            { n: pendingPerms.length, k: "Requests", c: "bg-lilac" },
-            { n: receipts, k: "Pauses done", c: "bg-mint" },
+            { n: sessions.length, k: t.komti.statClasses, c: "bg-sky" },
+            { n: timers.length, k: t.komti.statTimers, c: "bg-butter" },
+            { n: pendingPerms.length, k: t.komti.statRequests, c: "bg-lilac" },
+            { n: receipts, k: t.komti.statPauses, c: "bg-mint" },
           ].map((m) => (
             <div key={m.k} className={`rounded-[24px] p-4 text-center ${m.c}`}>
               <motion.p key={m.n} initial={{ scale: 1.25 }} animate={{ scale: 1 }} className="font-display text-4xl font-bold tabular-nums">{m.n}</motion.p>
@@ -41,11 +43,11 @@ export default function KomtiConsole({ sessions, permissions, feed }: View) {
 
         <AnimatePresence>{resched && <SlotEngine key={resched.id + resched.version} session={resched} />}</AnimatePresence>
 
-        <h2 className="mt-8 font-display text-2xl font-semibold">Today’s timeline</h2>
+        <h2 className="mt-8 font-display text-2xl font-semibold">{t.komti.timeline}</h2>
         <ol className="relative mt-4 space-y-4 pl-8">
           <span aria-hidden className="dashed-rail absolute bottom-6 left-[11px] top-6 w-0.5" />
           {sessions.map((x) => {
-            const st = STATUS[x.status];
+            const st = { ...STATUS[x.status], ...t.status[x.status] };
             const tone = TONE[st.tone];
             return (
               <motion.li layout key={x.id} className="relative">
@@ -56,7 +58,7 @@ export default function KomtiConsole({ sessions, permissions, feed }: View) {
                     <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-slate-500">
                       <span className="font-mono">{fmtRange(x.startsAt, x.endsAt)}</span>
                       <span className="flex items-center gap-1"><MapPin size={13} />{x.room.code}</span>
-                      <span>{x.klass.enrolled} students</span>
+                      <span>{x.klass.enrolled} {t.common.students}</span>
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <span className={`rounded-full px-3 py-1.5 text-sm font-medium ${tone.chip}`}>{st.label} {st.emoji}</span>
@@ -66,7 +68,7 @@ export default function KomtiConsole({ sessions, permissions, feed }: View) {
                           {x.receipts}/{x.klass.enrolled}
                         </span>
                       )}
-                      {x.status === "rescheduled" && x.lockedSlot?.startsAt && <span className="rounded-full bg-sky px-3 py-1.5 text-sm">→ {fmtDay(x.lockedSlot.startsAt)} {fmtTime(x.lockedSlot.startsAt)} · {x.lockedSlot.roomCode}</span>}
+                      {x.status === "rescheduled" && x.lockedSlot?.startsAt && <span className="rounded-full bg-sky px-3 py-1.5 text-sm">→ {fmtDay(x.lockedSlot.startsAt, t.locale)} {fmtTime(x.lockedSlot.startsAt)} · {x.lockedSlot.roomCode}</span>}
                     </div>
                   </div>
                   {x.status === "pending" ? <SlaRing deadline={x.slaDeadline} size={60} /> : <Avatar name={x.klass.lecturerName} size={44} />}
@@ -80,7 +82,7 @@ export default function KomtiConsole({ sessions, permissions, feed }: View) {
       <aside className="space-y-6 lg:border-l lg:border-slate-200 lg:pl-8">
         <PermissionQueue permissions={permissions} />
         <div>
-          <h2 className="font-display text-2xl font-semibold">Activity</h2>
+          <h2 className="font-display text-2xl font-semibold">{t.komti.activity}</h2>
           <ol className="mt-3 space-y-2">
             <AnimatePresence initial={false}>
               {feed.map((e) => (
@@ -91,7 +93,7 @@ export default function KomtiConsole({ sessions, permissions, feed }: View) {
                 </motion.li>
               ))}
             </AnimatePresence>
-            {feed.length === 0 && <li className="rounded-2xl border-2 border-dashed border-slate-300 p-4 text-center text-sm text-slate-400">Nothing yet today.</li>}
+            {feed.length === 0 && <li className="rounded-2xl border-2 border-dashed border-slate-300 p-4 text-center text-sm text-slate-400">{t.common.nothingYet}</li>}
           </ol>
         </div>
       </aside>
@@ -104,15 +106,16 @@ function SlotEngine({ session }: { session: View["sessions"][number] }) {
   const [pick, setPick] = useState(proposals[0]?.id);
   const [pending, start] = useTransition();
   const { toast } = useLive();
+  const t = useT();
 
   return (
     <motion.section initial={{ opacity: 0, y: 16, rotate: -1 }} animate={{ opacity: 1, y: 0, rotate: 0 }} exit={{ opacity: 0, scale: 0.97 }}
       className="relative mt-6 overflow-hidden rounded-[32px] bg-sky p-6 shadow-xl shadow-sky-deep/15">
       <div aria-hidden className="scanline pointer-events-none absolute inset-0" />
       <div className="relative">
-        <p className="text-xs font-semibold uppercase tracking-widest text-sky-deep">Conflict-free slot engine</p>
-        <h2 className="mt-1 font-display text-3xl font-semibold leading-tight">Pick a new slot for {session.klass.name}</h2>
-        <p className="mt-1 text-sm text-ink/60">Checked {session.klass.enrolled} student timetables, the lecturer’s classes and every room’s bookings.</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-sky-deep">{t.komti.engineKicker}</p>
+        <h2 className="mt-1 font-display text-3xl font-semibold leading-tight">{fmt(t.komti.engineTitle, { course: session.klass.name })}</h2>
+        <p className="mt-1 text-sm text-ink/60">{fmt(t.komti.engineLead, { n: session.klass.enrolled })}</p>
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           {proposals.map((p, i) => {
             const on = pick === p.id;
@@ -122,16 +125,16 @@ function SlotEngine({ session }: { session: View["sessions"][number] }) {
                 onClick={() => setPick(p.id)}
                 className={`relative rounded-[24px] p-4 text-left transition ${on ? "bg-ink text-white" : "bg-white hover:-translate-y-0.5"}`}>
                 <span className={`absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full ${on ? "bg-mint text-ink" : "bg-paper"}`}>{on && <Check size={15} />}</span>
-                <p className={`text-xs font-semibold uppercase tracking-widest ${on ? "text-white/60" : "text-ink/50"}`}>{p.kind === "optimal" ? "Optimal" : p.kind === "alt" ? "Alternative" : "Async"}</p>
+                <p className={`text-xs font-semibold uppercase tracking-widest ${on ? "text-white/60" : "text-ink/50"}`}>{p.kind === "optimal" ? t.komti.optimal : p.kind === "alt" ? t.komti.alt : t.komti.async}</p>
                 {p.kind === "async" ? (
-                  <><p className="mt-2 flex items-center gap-1.5 font-display text-lg font-semibold"><Coffee size={17} /> Micro-Pause</p><p className={`text-sm ${on ? "text-white/60" : "text-ink/50"}`}>15-min module + Q&amp;A thread</p></>
+                  <><p className="mt-2 flex items-center gap-1.5 font-display text-lg font-semibold"><Coffee size={17} /> Micro-Pause</p><p className={`text-sm ${on ? "text-white/60" : "text-ink/50"}`}>{t.komti.asyncSub}</p></>
                 ) : (
                   <>
-                    <p className="mt-2 font-display text-lg font-semibold leading-tight">{fmtDay(p.startsAt!)}</p>
+                    <p className="mt-2 font-display text-lg font-semibold leading-tight">{fmtDay(p.startsAt!, t.locale)}</p>
                     <p className={`font-mono text-sm ${on ? "text-white/70" : "text-ink/60"}`}>{fmtRange(p.startsAt!, p.endsAt!)} · {p.roomCode}</p>
                     <div className="mt-3 flex items-center gap-2">
                       <span className={`h-1.5 flex-1 overflow-hidden rounded-full ${on ? "bg-white/20" : "bg-paper"}`}><motion.span className={`block h-full ${p.conflicts ? "bg-butter-deep" : "bg-mint-deep"}`} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ delay: 0.3 + i * 0.1, duration: 0.6 }} /></span>
-                      <span className="text-xs">{p.conflicts ? `${p.conflicts} clash` : "0 clashes"}</span>
+                      <span className="text-xs">{p.conflicts ? fmt(t.komti.clash, { n: p.conflicts }) : t.komti.noClash}</span>
                     </div>
                   </>
                 )}
@@ -142,7 +145,7 @@ function SlotEngine({ session }: { session: View["sessions"][number] }) {
         <motion.button whileTap={{ scale: 0.98 }} disabled={pending || !pick}
           onClick={() => start(async () => { const r = await lockSlotAction({ sessionId: session.id, slotId: pick }); if (!r.ok) toast(r.error, "warn"); })}
           className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-ink font-semibold text-white disabled:opacity-50">
-          {pending ? <Loader2 className="animate-spin" size={18} /> : <Lock size={17} />} Lock &amp; broadcast to {session.klass.enrolled} students <Radio size={17} />
+          {pending ? <Loader2 className="animate-spin" size={18} /> : <Lock size={17} />} {fmt(t.komti.lock, { n: session.klass.enrolled })} <Radio size={17} />
         </motion.button>
       </div>
     </motion.section>
@@ -152,12 +155,13 @@ function SlotEngine({ session }: { session: View["sessions"][number] }) {
 function PermissionQueue({ permissions }: { permissions: View["permissions"] }) {
   const [pending, start] = useTransition();
   const { toast } = useLive();
+  const t = useT();
   const decide = (permissionId: string, decision: "approved" | "rejected") =>
     start(async () => { const r = await decidePermissionAction({ permissionId, decision }); if (!r.ok) toast(r.error, "warn"); });
 
   return (
     <div>
-      <h2 className="font-display text-3xl font-bold tracking-tight">Requests 🙋</h2>
+      <h2 className="font-display text-3xl font-bold tracking-tight">{t.komti.requests}</h2>
       <div className="mt-4 space-y-3">
         <AnimatePresence initial={false}>
           {permissions.map((p, i) => {
@@ -167,7 +171,7 @@ function PermissionQueue({ permissions }: { permissions: View["permissions"] }) 
                 className={`rounded-[28px] p-4 ${bg}`}>
                 <div className="flex items-center gap-2 text-sm font-medium">
                   {p.type === "sick" ? <Thermometer size={16} /> : <Trophy size={16} />}
-                  <span className="capitalize">{p.type}</span>
+                  <span>{p.type === "sick" ? t.leave.sick : t.leave.dispensation}</span>
                   <span className="ml-auto text-xs text-ink/50">{fmtTime(p.createdAt)}</span>
                 </div>
                 <div className="mt-3 rounded-2xl bg-white/70 p-3">
@@ -180,17 +184,17 @@ function PermissionQueue({ permissions }: { permissions: View["permissions"] }) 
                 </div>
                 {p.status === "pending" ? (
                   <div className="mt-3 grid grid-cols-2 gap-2">
-                    <button disabled={pending} onClick={() => decide(p.id, "rejected")} className="flex min-h-11 items-center justify-center gap-1 rounded-full bg-white text-sm font-semibold"><X size={15} /> Decline</button>
-                    <button disabled={pending} onClick={() => decide(p.id, "approved")} className="flex min-h-11 items-center justify-center gap-1 rounded-full bg-ink text-sm font-semibold text-white"><Check size={15} /> Approve</button>
+                    <button disabled={pending} onClick={() => decide(p.id, "rejected")} className="flex min-h-11 items-center justify-center gap-1 rounded-full bg-white text-sm font-semibold"><X size={15} /> {t.komti.decline}</button>
+                    <button disabled={pending} onClick={() => decide(p.id, "approved")} className="flex min-h-11 items-center justify-center gap-1 rounded-full bg-ink text-sm font-semibold text-white"><Check size={15} /> {t.komti.approve}</button>
                   </div>
                 ) : (
-                  <p className="mt-3 flex items-center gap-1 text-sm font-semibold"><Pin size={14} /> {p.status === "approved" ? "Excused 👏" : "Declined"}</p>
+                  <p className="mt-3 flex items-center gap-1 text-sm font-semibold"><Pin size={14} /> {p.status === "approved" ? t.komti.excused : t.komti.declined}</p>
                 )}
               </motion.div>
             );
           })}
         </AnimatePresence>
-        {permissions.length === 0 && <p className="rounded-[28px] border-2 border-dashed border-slate-300 p-6 text-center text-sm text-slate-400">No requests yet.</p>}
+        {permissions.length === 0 && <p className="rounded-[28px] border-2 border-dashed border-slate-300 p-6 text-center text-sm text-slate-400">{t.komti.noRequests}</p>}
       </div>
     </div>
   );

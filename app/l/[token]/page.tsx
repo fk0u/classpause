@@ -4,11 +4,14 @@ import { getSessionByTokenHash } from "@/lib/queries";
 import { db, schema as s } from "@/db";
 import { eq } from "drizzle-orm";
 import MagicCard from "./magic";
+import { getDict } from "@/lib/i18n/server";
+import LangSwitch from "@/components/lang-switch";
 
 export const metadata = { title: "1-Tap Card · ClassPause", robots: { index: false } };
 
 export default async function MagicPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+  const t = await getDict();
   const ok = z.string().regex(/^[A-Za-z0-9_-]{20,100}$/).safeParse(token).success;
   const ses = ok ? await getSessionByTokenHash(hashToken(token)) : null;
   const lecturer = ses ? (await db.select({ name: s.users.name }).from(s.users).where(eq(s.users.id, ses.klass.lecturerId)))[0]?.name : null;
@@ -16,7 +19,7 @@ export default async function MagicPage({ params }: { params: Promise<{ token: s
   return (
     <main className="min-h-dvh bg-ink px-4 py-10">
       <div className="mx-auto max-w-md">
-        <p className="mb-6 text-center font-display text-2xl font-bold text-white">ClassPause</p>
+        <div className="mb-6 flex items-center justify-between"><p className="font-display text-2xl font-bold text-white">ClassPause</p><LangSwitch dark /></div>
         {ses && ses.status === "pending" ? (
           <MagicCard token={token} card={{
             className: ses.klass.name, section: ses.klass.section, startsAt: ses.startsAt, endsAt: ses.endsAt,
@@ -24,8 +27,8 @@ export default async function MagicPage({ params }: { params: Promise<{ token: s
           }} />
         ) : (
           <div className="rounded-[32px] bg-white p-8 text-center">
-            <p className="font-display text-xl font-bold">This link is no longer active</p>
-            <p className="mt-2 text-sm text-slate-500">It was already used, or the 15-minute window passed and the class moved to Micro-Pause.</p>
+            <p className="font-display text-xl font-bold">{t.lecturer.expiredTitle}</p>
+            <p className="mt-2 text-sm text-slate-500">{t.lecturer.expiredLead}</p>
           </div>
         )}
       </div>

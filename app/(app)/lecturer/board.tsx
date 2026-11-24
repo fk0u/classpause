@@ -9,11 +9,13 @@ import { STATUS, TONE } from "@/components/status";
 import DayTimeline from "@/components/day-timeline";
 import { useLive } from "@/components/live";
 import { fmtRange } from "@/lib/time";
+import { useT } from "@/lib/i18n/client";
 
 type Ses = Awaited<ReturnType<typeof getLecturerView>>[number];
 
 export default function LecturerBoard({ name, sessions }: { name: string; sessions: Ses[] }) {
   const { toast } = useLive();
+  const t = useT();
   const waiting = sessions.filter((x) => x.status === "pending");
   const rest = sessions.filter((x) => x.status !== "pending");
 
@@ -21,8 +23,8 @@ export default function LecturerBoard({ name, sessions }: { name: string; sessio
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <section className="min-w-0">
         <p className="text-sm text-slate-500">{name}</p>
-        <h1 className="font-display text-4xl font-bold tracking-tight">My Classes Today 🎓</h1>
-        <p className="mt-2 max-w-xl text-slate-500">These cards normally reach you on Telegram or WhatsApp. Four options cover every outcome, so you never type a reply.</p>
+        <h1 className="font-display text-4xl font-bold tracking-tight">{t.lecturer.title}</h1>
+        <p className="mt-2 max-w-xl text-slate-500">{t.lecturer.lead}</p>
 
         {waiting.length > 0 && (
           <div className="mt-6 grid gap-4 xl:grid-cols-2">
@@ -36,7 +38,7 @@ export default function LecturerBoard({ name, sessions }: { name: string; sessio
 
         <div className="mt-6 space-y-3">
           {rest.map((x, i) => {
-            const st = STATUS[x.status];
+            const st = { ...STATUS[x.status], ...t.status[x.status] };
             return (
               <motion.div key={x.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                 className="flex items-center gap-4 rounded-[28px] bg-white p-5">
@@ -49,12 +51,12 @@ export default function LecturerBoard({ name, sessions }: { name: string; sessio
               </motion.div>
             );
           })}
-          {sessions.length === 0 && <p className="rounded-[28px] border-2 border-dashed border-slate-300 p-10 text-center text-slate-500">No classes today.</p>}
+          {sessions.length === 0 && <p className="rounded-[28px] border-2 border-dashed border-slate-300 p-10 text-center text-slate-500">{t.common.noClasses}</p>}
         </div>
       </section>
 
       <aside className="space-y-5 lg:border-l lg:border-slate-200 lg:pl-8">
-        <h2 className="font-display text-3xl font-bold tracking-tight">Schedule 🗓️</h2>
+        <h2 className="font-display text-3xl font-bold tracking-tight">{t.lecturer.schedule}</h2>
         <DayTimeline items={sessions.map((x) => ({ id: x.id, title: x.klass.name, sub: x.room.code, startsAt: x.startsAt, endsAt: x.endsAt, status: x.status }))} />
       </aside>
     </div>

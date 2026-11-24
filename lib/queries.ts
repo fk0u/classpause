@@ -107,3 +107,42 @@ export async function getHealth() {
   await db.execute(sql`select 1`);
   return { db: "ok", latencyMs: Date.now() - t };
 }
+
+/* ---------- Inbox, profile, weekly schedule ---------- */
+
+export async function getUnreadCount(userId: string) {
+  const [r] = await db.select({ n: count() }).from(s.notifications)
+    .where(and(eq(s.notifications.userId, userId), sql`${s.notifications.readAt} is null`));
+  return r?.n ?? 0;
+}
+
+export async function getInbox(userId: string) {
+  return db.select().from(s.notifications).where(eq(s.notifications.userId, userId)).orderBy(desc(s.notifications.createdAt)).limit(60);
+}
+
+export async function getProfile(userId: string) {
+  const catalog = await getCatalog();
+  const [classIds, receipts, perms] = await Promise.all([
+    getClassIdsFor(userId),
+    db.select({ r: s.attendanceReceipts, startsAt: s.sessions.startsAt, classId: s.sessions.classId })
+      .from(s.attendanceReceipts).innerJoin(s.sessions, eq(s.sessions.id, s.attendanceReceipts.sessionId))
+      .where(eq(s.attendanceReceipts.userId, userId)).orderBy(desc(s.attendanceReceipts.createdAt)).limit(20),
+    db.select({ n: count() }).from(s.permissions).where(eq(s.permissions.userId, userId)),
+  ]);
+  const teaching = Object.values(catalog.classes).filter((c) => c.lecturerId === userId).length;
+  return {
+    classes: classIds.length || teaching,
+    requests: perms[0]?.n ?? 0,
+    receipts: receipts.map((x) => ({ ...x.r, startsAt: x.startsAt, className: catalog.classes[x.classId]?.name ?? "" })),
+  };
+}
+
+export async function getWeekly(userId: string, role: "student" | "komti" | "lecturer") {
+  const catalog = await getCatalog();
+  const classIds = role === "lecturer"
+    ? Object.values(catalog.classes).filter((c) => c.lecturerId === userId).map((c) => c.id)
+    : await getClassIdsFor(userId);
+  if (!classIds.length) return [];
+  const rows = await db.select().from(s.meetings).where(inArray(s.meetings.classId, classIds));
+  return rows.map((m) => ({ ...m, className: catalog.classes[m.classId]?.name ?? "", lecturerName: catalog.classes[m.classId]?.lecturerName ?? "", room: catalog.rooms[m.roomId]?.code ?? "" }));
+}

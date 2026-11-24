@@ -7,6 +7,9 @@ const schema = z.object({
   CRON_SECRET: z.string().min(16).optional(),
   DEMO_MODE: z.enum(["true", "false"]).default("true").transform((v) => v === "true"),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default("mailto:admin@classpause.test"),
   DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
 });
 

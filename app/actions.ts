@@ -125,3 +125,59 @@ export async function demoExpireAction(sessionId: unknown): Promise<ActionResult
   await P.demoExpire(id.data);
   return { ok: true };
 }
+
+/* ---------- Profile, language, push, inbox ---------- */
+
+const pushSubSchema = z.object({
+  endpoint: z.string().url().max(1000),
+  keys: z.object({ p256dh: z.string().min(10).max(200), auth: z.string().min(8).max(100) }),
+});
+
+export async function savePushSubscription(input: unknown): Promise<ActionResult> {
+  const u = await currentUser();
+  if (!u) return fail("Sign in first");
+  const p = pushSubSchema.safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  await db.insert(s.pushSubscriptions)
+    .values({ userId: u.id, endpoint: p.data.endpoint, p256dh: p.data.keys.p256dh, auth: p.data.keys.auth })
+    .onConflictDoUpdate({ target: s.pushSubscriptions.endpoint, set: { userId: u.id, p256dh: p.data.keys.p256dh, auth: p.data.keys.auth } });
+  return { ok: true };
+}
+
+export async function removePushSubscription(endpoint: unknown): Promise<ActionResult> {
+  const u = await currentUser();
+  const e = z.string().url().safeParse(endpoint);
+  if (!u || !e.success) return fail("Bad request");
+  await db.delete(s.pushSubscriptions).where(and(eq(s.pushSubscriptions.endpoint, e.data), eq(s.pushSubscriptions.userId, u.id)));
+  return { ok: true };
+}
+
+export async function sendTestPush(): Promise<ActionResult> {
+  const u = await currentUser();
+  if (!u) return fail("Sign in first");
+  if (!(await guard(`testpush:${u.id}`))) return fail("Too many requests");
+  const { notifyUsers } = await import("@/lib/notify");
+  await notifyUsers([u.id], "test", (t) => ({ title: t.notif.test.title, body: t.notif.test.body, url: "/profile" }));
+  return { ok: true };
+}
+
+export async function setLocaleAction(locale: unknown): Promise<ActionResult> {
+  const l = z.enum(["en", "id"]).safeParse(locale);
+  if (!l.success) return fail("Unsupported language");
+  const { cookies } = await import("next/headers");
+  (await cookies()).set("cp_locale", l.data, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+  const u = await currentUser();
+  if (u) await db.update(s.users).set({ locale: l.data }).where(eq(s.users.id, u.id));
+  return { ok: true };
+}
+
+export async function markInboxRead(id?: unknown): Promise<ActionResult> {
+  const u = await currentUser();
+  if (!u) return fail("Sign in first");
+  const { isNull } = await import("drizzle-orm");
+  const one = id === undefined ? null : uuid.safeParse(id);
+  if (one && !one.success) return fail("Bad id");
+  await db.update(s.notifications).set({ readAt: new Date() })
+    .where(and(eq(s.notifications.userId, u.id), isNull(s.notifications.readAt), ...(one ? [eq(s.notifications.id, one.data)] : [])));
+  return { ok: true };
+}

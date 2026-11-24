@@ -5,17 +5,15 @@ import { motion } from "motion/react";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { signInAction } from "../actions";
 import { Avatar } from "@/components/avatar";
+import { useT } from "@/lib/i18n/client";
 
 type Persona = { id: string; name: string; role: "student" | "komti" | "lecturer"; studentNo: string | null };
 
-const META = {
-  student: { title: "Student", blurb: "Commute radar, Micro-Pause, leave requests", bg: "bg-mint" },
-  komti: { title: "Komti", blurb: "SLA timers, slot engine, permission queue", bg: "bg-lilac" },
-  lecturer: { title: "Lecturer", blurb: "Answer in one tap, never type a reply", bg: "bg-butter" },
-};
+const BG = { student: "bg-mint", komti: "bg-lilac", lecturer: "bg-butter" } as const;
 
 export default function PersonaPicker({ personas }: { personas: Persona[] }) {
   const [pending, start] = useTransition();
+  const t = useT();
   const [chosen, setChosen] = useState<string | null>(null);
   const order = ["student", "komti", "lecturer"] as const;
   const list = order.flatMap((r) => personas.filter((p) => p.role === r));
@@ -23,7 +21,7 @@ export default function PersonaPicker({ personas }: { personas: Persona[] }) {
   return (
     <div className="mt-6 grid gap-3">
       {list.map((p, i) => {
-        const m = META[p.role];
+        const m = { title: t.roles[p.role], blurb: t.login.blurb[p.role], bg: BG[p.role] };
         return (
           <motion.button key={p.id} disabled={pending}
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 * i, type: "spring", stiffness: 300, damping: 26 }}

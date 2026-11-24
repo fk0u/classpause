@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import type { SessionStatus } from "@/db/schema";
 import { STATUS, TONE } from "./status";
 import { fmtRange, localParts } from "@/lib/time";
+import { useT } from "@/lib/i18n/client";
 
 type Item = { id: string; title: string; sub: string; startsAt: Date | string; endsAt: Date | string; status: SessionStatus };
 
@@ -15,6 +16,7 @@ const PX_PER_MIN = 0.9;
 /** Vertical day calendar like the reference: hour rail, coloured blocks, a red "now" line. */
 export default function DayTimeline({ items }: { items: Item[] }) {
   const [now, setNow] = useState<number | null>(null);
+  const t = useT();
   useEffect(() => {
     const t = () => setNow(localParts(new Date()).minutes);
     t();
@@ -43,7 +45,7 @@ export default function DayTimeline({ items }: { items: Item[] }) {
             <motion.div key={it.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}
               className={`absolute left-14 right-0 overflow-hidden rounded-2xl border p-2.5 ${TONE[st.tone].block}`}
               style={{ top: y(a) + 1, height: Math.max(y(b) - y(a) - 3, 34) }}>
-              <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-ink/50">{st.emoji} {st.label}</p>
+              <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-ink/50">{st.emoji} {t.status[it.status].label}</p>
               <p className="truncate font-display text-sm font-semibold leading-tight">{it.title}</p>
               <p className="truncate font-mono text-[11px] text-ink/50">{fmtRange(it.startsAt, it.endsAt)} · {it.sub}</p>
             </motion.div>

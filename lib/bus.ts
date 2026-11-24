@@ -6,7 +6,12 @@ import { EventEmitter } from "node:events";
  * swap this for Postgres LISTEN/NOTIFY or Redis pub/sub behind the same API.
  */
 export type LiveEvent = {
-  type: "session" | "permission" | "receipt" | "prompt";
+  type: "session" | "permission" | "receipt" | "prompt" | "inbox";
+  /** When set, only these users receive the event. */
+  userIds?: string[];
+  /** i18n key into dict.notif so each client can show the toast in its own language. */
+  kind?: string;
+  vars?: Record<string, string>;
   sessionId?: string;
   classId?: string;
   message: string;
