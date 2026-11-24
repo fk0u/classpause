@@ -7,12 +7,41 @@
   --color-emerald: #10B981;
   --color-amber: #F59E0B;
   --color-crimson: #EF4444;
-  --font-display: var(--font-jakarta), system-ui, sans-serif;
+  --color-ink: #0B0B0F;
+  --color-paper: #F4F4F1;
+  --color-mint: #CFF1D8;
+  --color-mint-deep: #15803D;
+  --color-lilac: #EBD3F8;
+  --color-lilac-deep: #7E3AF2;
+  --color-butter: #F9E7AE;
+  --color-butter-deep: #A16207;
+  --color-sky: #D3F0F8;
+  --color-sky-deep: #0E7490;
+  --color-rose: #FCD5DE;
+  --color-rose-deep: #BE123C;
+  --font-display: var(--font-outfit), var(--font-jakarta), system-ui, sans-serif;
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 
 body { background: var(--color-canvas); color: var(--color-navy); }
+
+/* ---------- Dei-style shell ---------- */
+.panel { position: relative; background: var(--color-paper); border-radius: 36px 36px 0 0; }
+@media (min-width: 640px) { .panel { border-radius: 36px; } }
+/* the little notch bump at the top centre of the panel */
+.panel::before {
+  content: ""; position: absolute; left: 50%; top: -14px; width: 120px; height: 28px; transform: translateX(-50%);
+  background: var(--color-paper); border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+.dashed-rail { background-image: linear-gradient(var(--color-mint-deep) 50%, transparent 0); background-size: 2px 8px; }
+.hatch { background-image: repeating-linear-gradient(135deg, rgb(15 23 42 / 0.06) 0 2px, transparent 2px 8px); }
+.float { animation: float 6s ease-in-out infinite; }
+@keyframes float { 50% { transform: translateY(-10px); } }
+.orbit { animation: orbit 40s linear infinite; }
+.orbit-rev { animation: orbit 40s linear infinite reverse; }
+@keyframes orbit { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .float, .orbit, .orbit-rev { animation: none; } }
 
 /* ---------- Immersive layer ---------- */
 .aurora {

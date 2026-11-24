@@ -14,15 +14,16 @@ export default async function MagicPage({ params }: { params: Promise<{ token: s
   const lecturer = ses ? (await db.select({ name: s.users.name }).from(s.users).where(eq(s.users.id, ses.klass.lecturerId)))[0]?.name : null;
 
   return (
-    <main className="min-h-dvh bg-[#d9cfc3] px-4 py-8">
+    <main className="min-h-dvh bg-ink px-4 py-10">
       <div className="mx-auto max-w-md">
+        <p className="mb-6 text-center font-display text-2xl font-bold text-white">ClassPause</p>
         {ses && ses.status === "pending" ? (
           <MagicCard token={token} card={{
             className: ses.klass.name, section: ses.klass.section, startsAt: ses.startsAt, endsAt: ses.endsAt,
             room: ses.room.code, enrolled: ses.klass.enrolled, deadline: ses.slaDeadline, lecturer: lecturer ?? "Lecturer",
           }} />
         ) : (
-          <div className="rounded-3xl bg-white p-8 text-center shadow-xl">
+          <div className="rounded-[32px] bg-white p-8 text-center">
             <p className="font-display text-xl font-bold">This link is no longer active</p>
             <p className="mt-2 text-sm text-slate-500">It was already used, or the 15-minute window passed and the class moved to Micro-Pause.</p>
           </div>

@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { MapPin, User2, Coffee, FileHeart, BadgeCheck, CalendarClock, Navigation, Hourglass } from "lucide-react";
+import { MapPin, Play, Music2, FileHeart, BadgeCheck, MoreHorizontal } from "lucide-react";
 import type { getStudentView } from "@/lib/queries";
-import { STATUS, TONE_CLASSES } from "@/components/status";
+import { STATUS, TONE } from "@/components/status";
 import { SlaRing } from "@/components/countdown";
+import { Avatar } from "@/components/avatar";
+import DayTimeline from "@/components/day-timeline";
 import { fmtRange, fmtDay } from "@/lib/time";
 import MicroPause from "./micro-pause";
 import LeaveSheet from "./leave-sheet";
@@ -18,42 +20,54 @@ export default function StudentBoard({ firstName, sessions, completedPauses }: V
   const [leave, setLeave] = useState<Ses | null>(null);
 
   const safe = sessions.filter((x) => x.status === "confirmed").length;
-  const hold = sessions.filter((x) => ["pending", "scheduled", "delayed"].includes(x.status)).length;
+  const hold = sessions.filter((x) => ["pending", "delayed"].includes(x.status)).length;
   const freed = sessions.filter((x) => ["micropause", "rescheduled"].includes(x.status)).length;
 
   return (
-    <div className="space-y-6">
-      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-[28px] bg-navy p-6 text-white shadow-2xl shadow-indigo/20">
-        <div aria-hidden className="aurora absolute inset-0 opacity-70" />
-        <div className="relative">
-          <p className="text-sm text-indigo-200">Hi {firstName} · {fmtDay(new Date())}</p>
-          <h1 className="mt-1 font-display text-3xl font-extrabold sm:text-4xl">Today’s Commute Radar</h1>
-          <div className="mt-5 grid grid-cols-3 gap-2 sm:max-w-md">
-            {[
-              { k: "Safe to go", v: safe, c: "text-emerald-300" },
-              { k: "On hold", v: hold, c: "text-amber-300" },
-              { k: "Freed up", v: freed, c: "text-indigo-300" },
-            ].map((m) => (
-              <div key={m.k} className="rounded-2xl bg-white/10 p-3 backdrop-blur">
-                <p className={`font-mono text-3xl font-bold tabular-nums ${m.c}`}>{m.v}</p>
-                <p className="text-[11px] text-slate-300">{m.k}</p>
-              </div>
-            ))}
+    <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+      <section>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-sm text-slate-500">Hi {firstName} · {fmtDay(new Date())}</p>
+            <h1 className="font-display text-4xl font-bold tracking-tight">My Commute Radar 🛰️</h1>
           </div>
-          <p className="mt-4 text-xs text-slate-400">{completedPauses} Micro-Pause module{completedPauses === 1 ? "" : "s"} completed this semester</p>
         </div>
-      </motion.section>
 
-      {sessions.length === 0 && (
-        <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">No classes today. Enjoy the free day.</div>
-      )}
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat n={sessions.length} label="Today" cls="bg-sky" />
+          <Stat n={safe} label="Safe to go" cls="bg-mint" badge={safe ? "🎉" : undefined} />
+          <Stat n={hold} label="On hold" cls="border-2 border-dashed border-slate-300 bg-transparent" />
+          <Stat n={freed} label="Freed up" cls="bg-lilac" />
+        </div>
 
-      <motion.ul layout className="space-y-4">
-        <AnimatePresence>
-          {sessions.map((x, i) => <SessionCard key={x.id} x={x} i={i} onPause={() => setPause(x)} onLeave={() => setLeave(x)} />)}
-        </AnimatePresence>
-      </motion.ul>
+        {sessions.length === 0 && (
+          <div className="mt-6 rounded-[28px] border-2 border-dashed border-slate-300 p-10 text-center text-slate-500">No classes today. Enjoy the free day 🌴</div>
+        )}
+
+        <ol className="relative mt-8 space-y-5 pl-8">
+          <span aria-hidden className="dashed-rail absolute bottom-6 left-[11px] top-6 w-0.5" />
+          <AnimatePresence>
+            {sessions.map((x, i) => (
+              <motion.li key={x.id} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, type: "spring", stiffness: 280, damping: 28 }} className="relative">
+                <span aria-hidden className={`absolute -left-[26px] top-8 h-3 w-3 rounded-full ring-4 ring-paper ${TONE[STATUS[x.status].tone].dot}`} />
+                {x.status === "micropause" && x.module && !x.receipt
+                  ? <PauseCard x={x} onPlay={() => setPause(x)} />
+                  : <SessionCard x={x} onLeave={() => setLeave(x)} />}
+              </motion.li>
+            ))}
+          </AnimatePresence>
+        </ol>
+      </section>
+
+      <aside className="space-y-5 lg:border-l lg:border-slate-200 lg:pl-8">
+        <h2 className="font-display text-3xl font-bold tracking-tight">Today 🧐</h2>
+        <DayTimeline items={sessions.map((x) => ({ id: x.id, title: x.klass.name, sub: x.room.code, startsAt: x.startsAt, endsAt: x.endsAt, status: x.status }))} />
+        <div className="rounded-[28px] bg-white p-5">
+          <p className="text-sm text-slate-500">This semester</p>
+          <p className="mt-1 font-display text-5xl font-bold">{completedPauses}</p>
+          <p className="text-sm text-slate-500">Micro-Pause module{completedPauses === 1 ? "" : "s"} completed</p>
+        </div>
+      </aside>
 
       <AnimatePresence>{pause && pause.module && <MicroPause session={pause} onClose={() => setPause(null)} />}</AnimatePresence>
       <AnimatePresence>{leave && <LeaveSheet session={leave} onClose={() => setLeave(null)} />}</AnimatePresence>
@@ -61,64 +75,82 @@ export default function StudentBoard({ firstName, sessions, completedPauses }: V
   );
 }
 
-function SessionCard({ x, i, onPause, onLeave }: { x: Ses; i: number; onPause: () => void; onLeave: () => void }) {
-  const st = STATUS[x.status];
-  const tone = TONE_CLASSES[st.tone];
-  const canPause = x.status === "micropause" && x.module && !x.receipt;
+function Stat({ n, label, cls, badge }: { n: number; label: string; cls: string; badge?: string }) {
   return (
-    <motion.li layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-      transition={{ delay: i * 0.05, type: "spring", stiffness: 300, damping: 30 }}
-      className={`relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg ${tone.glow}`}>
-      <motion.div layoutId={`bar-${x.id}`} className={`h-1.5 ${tone.bar}`} />
-      <div className="p-5">
-        <div className="flex items-start gap-4">
-          <div className="min-w-0 flex-1">
-            <motion.span key={x.status} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${tone.chip}`}>
-              {x.status === "confirmed" ? <Navigation size={12} /> : x.status === "pending" ? <Hourglass size={12} /> : x.status === "micropause" ? <Coffee size={12} /> : <CalendarClock size={12} />}
-              {st.label}
-            </motion.span>
-            <h2 className="mt-2 font-display text-lg font-bold leading-snug">{x.klass.name}</h2>
-            <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs text-slate-500">
-              <span>{fmtRange(x.startsAt, x.endsAt)}{x.delayMinutes ? ` +${x.delayMinutes}m` : ""}</span>
-              <span className="flex items-center gap-1"><MapPin size={12} />{x.room.code}</span>
-              <span className="flex items-center gap-1 font-sans"><User2 size={12} />{x.klass.lecturerName}</span>
-            </p>
-          </div>
-          {x.status === "pending" && <SlaRing deadline={x.slaDeadline} />}
+    <div className={`relative rounded-[24px] p-4 text-center ${cls}`}>
+      {badge && <span className="absolute -right-1 -top-3 text-2xl">{badge}</span>}
+      <motion.p key={n} initial={{ scale: 1.25 }} animate={{ scale: 1 }} className="font-display text-4xl font-bold tabular-nums">{n}</motion.p>
+      <p className="text-sm text-ink/60">{label}</p>
+    </div>
+  );
+}
+
+function SessionCard({ x, onLeave }: { x: Ses; onLeave: () => void }) {
+  const st = STATUS[x.status];
+  const tone = TONE[st.tone];
+  return (
+    <div className="rounded-[28px] bg-white p-5 shadow-[0_1px_0_rgba(15,23,42,0.04)]">
+      <div className="flex items-start gap-4">
+        <div className="min-w-0 flex-1">
+          <h3 className="font-display text-2xl font-semibold leading-tight">{x.klass.name}</h3>
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
+            <span className="font-mono">{fmtRange(x.startsAt, x.endsAt)}{x.delayMinutes ? ` +${x.delayMinutes}m` : ""}</span>
+            <span className="flex items-center gap-1"><MapPin size={13} />{x.room.code}</span>
+          </p>
+          <p className="mt-2 text-sm text-slate-500">{st.advice}</p>
         </div>
+        {x.status === "pending"
+          ? <SlaRing deadline={x.slaDeadline} size={60} />
+          : <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl ${tone.card === "bg-white" ? "bg-paper" : tone.card}`}>{st.emoji}</span>}
+      </div>
 
-        <p className={`mt-3 text-sm ${tone.text}`}>{st.advice}</p>
+      {x.status === "rescheduled" && x.lockedSlot?.startsAt && (
+        <div className="mt-3 rounded-2xl bg-sky p-3 text-sm">
+          <span className="font-semibold">New slot:</span> {fmtDay(x.lockedSlot.startsAt)} · {fmtRange(x.lockedSlot.startsAt, x.lockedSlot.endsAt!)} · {x.lockedSlot.roomCode}
+        </div>
+      )}
 
-        {x.status === "rescheduled" && x.lockedSlot?.startsAt && (
-          <div className="mt-3 rounded-2xl bg-indigo-50 p-3 text-sm text-indigo-900">
-            <span className="font-semibold">New slot:</span> {fmtDay(x.lockedSlot.startsAt)} · {fmtRange(x.lockedSlot.startsAt, x.lockedSlot.endsAt!)} · {x.lockedSlot.roomCode}
-          </div>
-        )}
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {canPause && (
-            <motion.button whileTap={{ scale: 0.97 }} onClick={onPause}
-              className="shine flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-indigo px-4 font-semibold text-white shadow-lg shadow-indigo/30">
-              <Coffee size={18} /> Start 15-min Micro-Pause
-            </motion.button>
-          )}
-          {x.receipt && (
-            <span className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-50 px-4 text-sm font-semibold text-emerald-800">
-              <BadgeCheck size={18} /> Attendance logged · {x.receipt.code} · {x.receipt.correct}/{x.receipt.total}
-            </span>
-          )}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <motion.span key={x.status} initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          className={`rounded-full px-4 py-2 text-sm font-medium ${tone.chip}`}>{st.label} {st.emoji}</motion.span>
+        {x.receipt && <span className="flex items-center gap-1.5 rounded-full bg-mint px-4 py-2 text-sm font-medium text-mint-deep"><BadgeCheck size={15} /> {x.receipt.code} · {x.receipt.correct}/{x.receipt.total}</span>}
+        <span className="ml-auto flex items-center gap-2">
+          <Avatar name={x.klass.lecturerName} size={34} />
           {x.permission ? (
-            <span className="flex min-h-12 items-center gap-2 rounded-2xl bg-slate-100 px-4 text-sm font-medium text-slate-600">
-              <FileHeart size={16} /> {x.permission.type === "sick" ? "Sick" : "Dispensation"}: {x.permission.status}
-            </span>
+            <span className="rounded-full bg-paper px-3 py-2 text-xs font-medium text-slate-600">{x.permission.type === "sick" ? "Sick" : "Dispensation"} · {x.permission.status}</span>
           ) : !x.receipt && (
-            <button onClick={onLeave} className="flex min-h-12 items-center gap-2 rounded-2xl border-2 border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              <FileHeart size={16} /> Request leave
+            <button onClick={onLeave} aria-label="Request leave" title="Request leave"
+              className="flex h-10 items-center gap-1.5 rounded-full bg-paper px-3 text-sm font-medium text-slate-700 hover:bg-slate-200">
+              <FileHeart size={15} /> Leave
             </button>
           )}
-        </div>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-paper text-slate-500"><MoreHorizontal size={16} /></span>
+        </span>
       </div>
-    </motion.li>
+    </div>
+  );
+}
+
+/** The lilac "now playing" card from the reference, for an active Micro-Pause. */
+function PauseCard({ x, onPlay }: { x: Ses; onPlay: () => void }) {
+  return (
+    <motion.button onClick={onPlay} whileHover={{ rotate: 0, scale: 1.01 }} initial={{ rotate: -2 }} animate={{ rotate: -1.5 }}
+      className="relative block w-full overflow-hidden rounded-[32px] bg-lilac p-6 text-left shadow-xl shadow-lilac-deep/20">
+      <Music2 aria-hidden size={26} className="float absolute right-[38%] top-5 text-white" />
+      <Music2 aria-hidden size={20} className="float absolute bottom-16 right-6 text-white [animation-delay:1.5s]" />
+      <div className="grid items-center gap-4 sm:grid-cols-[1fr_auto]">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-lilac-deep">Micro-Pause · {x.module!.minutes} min</p>
+          <h3 className="mt-1 font-display text-3xl font-semibold leading-tight">{x.module!.title}</h3>
+          <p className="mt-2 text-sm text-ink/60">{x.klass.name}: lecturer is away, so learn here and your attendance is logged.</p>
+        </div>
+        <span className="relative mx-auto flex h-28 w-28 items-center justify-center">
+          <span className="absolute inset-0 animate-ping rounded-full bg-white/40 [animation-duration:2.4s]" />
+          <span className="absolute inset-0 rounded-full border-[6px] border-white/70" />
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-ink"><Play size={26} fill="currentColor" /></span>
+        </span>
+      </div>
+      <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold">▶ Start 15-min module</span>
+    </motion.button>
   );
 }

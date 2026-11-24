@@ -13,8 +13,8 @@ export default function MagicCard({ token, card }: { token: string; card: Card }
   const [error, setError] = useState<string | null>(null);
 
   if (done) return (
-    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="rounded-3xl bg-white p-8 text-center shadow-xl">
-      <CheckCircle2 size={56} className="mx-auto text-emerald" />
+    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="rounded-[32px] bg-mint p-8 text-center">
+      <CheckCircle2 size={56} className="mx-auto text-mint-deep" />
       <p className="mt-4 font-display text-xl font-bold">Sent to {card.enrolled} students</p>
       <p className="mt-1 text-sm text-slate-500">They see the update on their radar right now. You can close this page.</p>
     </motion.div>
@@ -26,7 +26,7 @@ export default function MagicCard({ token, card }: { token: string; card: Card }
         const r = await magicAction({ token, action });
         if (r.ok) setDone(action); else setError(r.error);
       }} />
-      {error && <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {error && <p className="mt-3 rounded-2xl bg-rose p-3 text-sm text-red-700">{error}</p>}
     </>
   );
 }

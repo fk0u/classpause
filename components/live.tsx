@@ -50,8 +50,8 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
             <motion.div key={t.id} layout
               initial={{ opacity: 0, y: -16, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.96 }}
               transition={{ type: "spring", stiffness: 420, damping: 32 }}
-              className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl px-4 py-3 text-sm font-medium shadow-2xl backdrop-blur-xl ${
-                t.tone === "ok" ? "bg-emerald-600/95 text-white" : t.tone === "warn" ? "bg-amber-400/95 text-navy" : "bg-navy/95 text-white"}`}>
+              className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-3xl px-4 py-3 text-sm font-medium shadow-2xl backdrop-blur-xl ${
+                t.tone === "ok" ? "bg-mint text-ink ring-1 ring-mint-deep/20" : t.tone === "warn" ? "bg-butter text-ink ring-1 ring-butter-deep/20" : "bg-ink text-white"}`}>
               {t.tone === "ok" ? <CheckCircle2 size={18} className="mt-0.5 shrink-0" /> : t.tone === "warn" ? <AlertTriangle size={18} className="mt-0.5 shrink-0" /> : <Radio size={18} className="mt-0.5 shrink-0" />}
               <span className="flex-1">
                 {t.text}
@@ -69,7 +69,7 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
 export function LiveDot() {
   const { connected } = useLive();
   return (
-    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500" title={connected ? "Live updates connected" : "Reconnecting…"}>
+    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/60" title={connected ? "Live updates connected" : "Reconnecting…"}>
       <span className="relative flex h-2 w-2">
         {connected && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald opacity-60" />}
         <span className={`relative inline-flex h-2 w-2 rounded-full ${connected ? "bg-emerald" : "bg-slate-300"}`} />
