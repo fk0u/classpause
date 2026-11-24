@@ -5,3 +5,10 @@ node_modules
 next-env.d.ts
 .ruas/ruas.db
 docs/sources/
+.pgdata/
+.env*
+.pgdata/
+.pgdata.log
+.env*
+
+!.env.example

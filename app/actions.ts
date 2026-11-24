@@ -1,0 +1,127 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { z } from "zod";
+import { currentUser, signIn, signOut, homeFor } from "@/lib/auth";
+import { env } from "@/lib/env";
+import { rateLimit } from "@/lib/rate-limit";
+import * as P from "@/lib/protocol";
+import { db, schema as s } from "@/db";
+import { and, eq } from "drizzle-orm";
+import {
+  lecturerActionSchema, magicActionSchema, lockSlotSchema, permissionSchema,
+  decidePermissionSchema, quizSubmitSchema, signInSchema, uuid, type ActionResult,
+} from "@/lib/validation";
+
+const fail = (error: string) => ({ ok: false as const, error });
+const zodFail = (e: z.ZodError) => fail(e.issues[0]?.message ?? "Invalid input");
+
+async function guard(key: string) {
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
+  return rateLimit(`${key}:${ip}`, 30, 60_000);
+}
+
+export async function signInAction(input: unknown) {
+  const p = signInSchema.safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  const [u] = await db.select().from(s.users).where(eq(s.users.id, p.data.userId)).limit(1);
+  if (!u) return fail("Unknown account");
+  await signIn(u.id);
+  redirect(homeFor(u.role));
+}
+
+export async function signOutAction() {
+  await signOut();
+  redirect("/login");
+}
+
+export async function lecturerAction(input: unknown): Promise<ActionResult> {
+  const u = await currentUser();
+  if (!u || u.role !== "lecturer") return fail("Lecturers only");
+  const p = lecturerActionSchema.safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  const [own] = await db.select({ id: s.sessions.id }).from(s.sessions)
+    .innerJoin(s.classes, eq(s.classes.id, s.sessions.classId))
+    .where(and(eq(s.sessions.id, p.data.sessionId), eq(s.classes.lecturerId, u.id))).limit(1);
+  if (!own) return fail("Not your class");
+  const r = await P.respond(p.data.sessionId, p.data.action, u.id);
+  return r.ok ? { ok: true } : r;
+}
+
+/** Magic-link action: no login, the single-use token is the credential. */
+export async function magicAction(input: unknown): Promise<ActionResult> {
+  if (!(await guard("magic"))) return fail("Too many attempts, wait a minute");
+  const p = magicActionSchema.safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  const r = await P.respondByToken(p.data.token, p.data.action);
+  return r.ok ? { ok: true } : r;
+}
+
+async function requireKomtiOf(sessionId: string) {
+  const u = await currentUser();
+  if (!u || u.role !== "komti") return null;
+  const [own] = await db.select({ id: s.sessions.id }).from(s.sessions)
+    .innerJoin(s.classes, eq(s.classes.id, s.sessions.classId))
+    .where(and(eq(s.sessions.id, sessionId), eq(s.classes.komtiId, u.id))).limit(1);
+  return own ? u : null;
+}
+
+export async function lockSlotAction(input: unknown): Promise<ActionResult> {
+  const p = lockSlotSchema.safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  const u = await requireKomtiOf(p.data.sessionId);
+  if (!u) return fail("Komti of this class only");
+  const r = await P.lockSlot(p.data.sessionId, p.data.slotId, u.id);
+  return r.ok ? { ok: true } : r;
+}
+
+export async function decidePermissionAction(input: unknown): Promise<ActionResult> {
+  const p = decidePermissionSchema.safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  const [perm] = await db.select({ sessionId: s.permissions.sessionId }).from(s.permissions).where(eq(s.permissions.id, p.data.permissionId));
+  if (!perm) return fail("Not found");
+  const u = await requireKomtiOf(perm.sessionId);
+  if (!u) return fail("Komti of this class only");
+  const r = await P.decidePermission(p.data.permissionId, p.data.decision, u.id);
+  return r.ok ? { ok: true } : r;
+}
+
+export async function requestPermissionAction(input: unknown): Promise<ActionResult> {
+  const u = await currentUser();
+  if (!u || u.role === "lecturer") return fail("Students only");
+  if (!(await guard(`perm:${u.id}`))) return fail("Too many requests");
+  const p = permissionSchema.safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  const r = await P.requestPermission(p.data.sessionId, u.id, p.data.type, p.data.note);
+  return r.ok ? { ok: true, message: "Sent to your komti" } : r;
+}
+
+export async function submitQuizAction(input: unknown): Promise<ActionResult<{ code: string; correct: number; total: number }>> {
+  const u = await currentUser();
+  if (!u || u.role === "lecturer") return fail("Students only");
+  const p = quizSubmitSchema.safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  const r = await P.submitQuiz(p.data.sessionId, u.id, p.data.answers);
+  return r.ok ? { ok: true, data: { code: r.receipt.code, correct: r.receipt.correct, total: r.receipt.total } } : r;
+}
+
+/* ---------- Demo controls ---------- */
+
+export async function demoRestartAction(classId: unknown): Promise<ActionResult<{ url: string }>> {
+  if (!env.DEMO_MODE) return fail("Demo mode is off");
+  if (!(await currentUser())) return fail("Sign in first");
+  const id = uuid.safeParse(classId);
+  if (!id.success) return fail("Bad class");
+  const r = await P.demoRestart(id.data);
+  return r ? { ok: true, data: { url: r.url } } : fail("Could not restart");
+}
+
+export async function demoExpireAction(sessionId: unknown): Promise<ActionResult> {
+  if (!env.DEMO_MODE) return fail("Demo mode is off");
+  if (!(await currentUser())) return fail("Sign in first");
+  const id = uuid.safeParse(sessionId);
+  if (!id.success) return fail("Bad session");
+  await P.demoExpire(id.data);
+  return { ok: true };
+}

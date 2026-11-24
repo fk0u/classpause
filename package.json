@@ -1,24 +1,38 @@
 {
-  "name": "classpause-design-system",
+  "name": "classpause",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env.production.local db/migrate.ts",
+    "db:seed": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env.production.local db/seed.ts",
+    "db:dev": "pglite-server --db=.pgdata --port=5433",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "drizzle-orm": "^0.44.5",
+    "jose": "^6.1.0",
     "lucide-react": "0.544.0",
+    "motion": "^12.23.22",
     "next": "15.5.4",
+    "postgres": "^3.4.7",
     "react": "19.1.1",
-    "react-dom": "19.1.1"
+    "react-dom": "19.1.1",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.3.10",
+    "@electric-sql/pglite-socket": "^0.0.15",
     "@fk0u/ruas": "^1.4.0",
     "@tailwindcss/postcss": "4.1.13",
     "@types/node": "24.5.2",
     "@types/react": "19.1.13",
+    "drizzle-kit": "^0.31.5",
     "postcss": "8.5.6",
     "tailwindcss": "4.1.13",
+    "tsx": "^4.20.6",
     "typescript": "5.9.2"
   }
 }

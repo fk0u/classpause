@@ -13,3 +13,32 @@
 }
 
 body { background: var(--color-canvas); color: var(--color-navy); }
+
+/* ---------- Immersive layer ---------- */
+.aurora {
+  background:
+    radial-gradient(40rem 24rem at 15% 10%, rgb(67 56 202 / 0.55), transparent 60%),
+    radial-gradient(32rem 22rem at 85% 30%, rgb(16 185 129 / 0.25), transparent 60%),
+    radial-gradient(36rem 26rem at 50% 110%, rgb(245 158 11 / 0.18), transparent 60%);
+  animation: aurora 18s ease-in-out infinite alternate;
+}
+@keyframes aurora { to { transform: translate3d(0, -3%, 0) scale(1.08); filter: hue-rotate(18deg); } }
+
+.shine { position: relative; overflow: hidden; }
+.shine::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-120%);
+  background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.35), transparent 70%);
+  animation: shine 2.8s ease-in-out infinite;
+}
+@keyframes shine { 60%, 100% { transform: translateX(120%); } }
+
+.scanline {
+  background: linear-gradient(180deg, transparent, rgb(67 56 202 / 0.08), transparent);
+  background-size: 100% 40%; background-repeat: no-repeat;
+  animation: scan 2.4s ease-in-out 2;
+}
+@keyframes scan { from { background-position: 0 -40%; } to { background-position: 0 140%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora, .shine::after, .scanline { animation: none; }
+}
