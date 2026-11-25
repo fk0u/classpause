@@ -238,8 +238,8 @@
   <table>
     <tr><th style="width:16%">User</th><th style="width:38%">Value</th><th>Built screens</th></tr>
     <tr><td><span class="status bg-mint">Student</span></td><td>Knows whether to leave before leaving; turns a cancelled class into learning; avoids unfair absence</td><td>Commute Radar with live tiles and day calendar, Micro-Pause play card, quiz and receipt, leave request, inbox, weekly schedule, profile</td></tr>
-    <tr><td><span class="status bg-lilac">Komti</span></td><td>No more chasing; picks a makeup slot from 3 instead of negotiating</td><td>Class Operations: SLA timers, slot engine with Lock &amp; broadcast, request cards, activity feed</td></tr>
-    <tr><td><span class="status bg-butter">Lecturer</span></td><td>Answers 40 students with one tap, no typing</td><td>Push notification → 1-tap card (dashboard or magic link)</td></tr>
+    <tr><td><span class="status bg-lilac">Komti</span></td><td>No more chasing; picks a makeup slot from 3 instead of negotiating</td><td>Class Operations: SLA timers, slot engine with Lock &amp; broadcast, read-only view of leave requests, activity feed</td></tr>
+    <tr><td><span class="status bg-butter">Lecturer</span></td><td>Answers 40 students with one tap, no typing; decides leave requests directly</td><td>Push notification → 1-tap card (dashboard or magic link), leave-request queue</td></tr>
   </table>
   <p class="soft small">Out of scope: grading, full LMS replacement, parking and facility reporting (raised in our field notes but outside Cluster 1).</p>
 
@@ -291,8 +291,8 @@
     <tr><td><b>Lecturer 1-tap card</b></td><td>Single-use token (only its hash is stored), expires at H+15m; same card on the dashboard</td><td><span class="status bg-mint">Live</span></td></tr>
     <tr><td><b>Slot engine</b></td><td>Next 6 campus days × standard 100-min blocks; lecturer free and a big-enough free room are hard rules; student clashes are scored</td><td><span class="status bg-mint">Live</span></td></tr>
     <tr><td><b>Commute Radar</b></td><td>Live status tiles, SLA ring, day calendar with a “now” line</td><td><span class="status bg-mint">Live</span></td></tr>
-    <tr><td><b>Micro-Pause</b></td><td>Step module + quiz; server scores it and issues a receipt code</td><td><span class="status bg-mint">Live</span></td></tr>
-    <tr><td><b>Leave requests</b></td><td>Student submits sick or dispensation; komti approves or declines</td><td><span class="status bg-mint">Live</span></td></tr>
+    <tr><td><b>Micro-Pause</b></td><td>Step module + quiz; each student gets 4 questions drawn from a bank in their own order, answers never reach the browser, one attempt, then a receipt code</td><td><span class="status bg-mint">Live</span></td></tr>
+    <tr><td><b>Leave requests</b></td><td>Student submits sick or dispensation straight to the lecturer, who approves or declines; komti sees a read-only copy</td><td><span class="status bg-mint">Live</span></td></tr>
     <tr><td><b>Notifications</b></td><td>Every protocol event goes to the inbox and Web Push, in each recipient’s language; dead subscriptions pruned</td><td><span class="status bg-mint">Live</span></td></tr>
     <tr><td><b>PWA &amp; languages</b></td><td>Manifest, generated icons, install prompt, offline page; English and Bahasa Indonesia</td><td><span class="status bg-mint">Live</span></td></tr>
     <tr><td><b>Campus SSO</b></td><td>Persona picker stands in for single sign-on</td><td><span class="status bg-butter">Planned</span></td></tr>

@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { and, desc, eq, gte, inArray, lt, sql, count } from "drizzle-orm";
 import { db, schema as s } from "@/db";
 import { startOfLocalDay } from "./time";
+import { quizFor } from "./quiz";
 
 /* ---------- Catalog: slow-changing, cached across requests (tag "catalog") ---------- */
 
@@ -58,7 +59,8 @@ export async function getStudentView(userId: string) {
       ...x,
       klass: catalog.classes[x.classId],
       room: catalog.rooms[x.roomId],
-      module: catalog.modules[x.classId] ?? null,
+      // Answers are stripped: the client only gets this student's own question paper.
+      module: catalog.modules[x.classId] ? (({ quiz, ...m }) => ({ ...m, questions: quizFor(userId, x.id, quiz), bankSize: quiz.length }))(catalog.modules[x.classId]) : null,
       receipt: receipts.find((r) => r.sessionId === x.id) ?? null,
       permission: perms.find((p) => p.sessionId === x.id) ?? null,
     })),
@@ -93,7 +95,14 @@ export async function getLecturerView(userId: string) {
   const catalog = await getCatalog();
   const classIds = Object.values(catalog.classes).filter((c) => c.lecturerId === userId).map((c) => c.id);
   const sessions = await getTodaySessions(classIds);
-  return sessions.map((x) => ({ ...x, klass: catalog.classes[x.classId], room: catalog.rooms[x.roomId] }));
+  const ids = sessions.map((x) => x.id);
+  const perms = ids.length ? await db.select({ p: s.permissions, name: s.users.name })
+    .from(s.permissions).innerJoin(s.users, eq(s.users.id, s.permissions.userId))
+    .where(inArray(s.permissions.sessionId, ids)).orderBy(desc(s.permissions.createdAt)) : [];
+  return {
+    sessions: sessions.map((x) => ({ ...x, klass: catalog.classes[x.classId], room: catalog.rooms[x.roomId] })),
+    permissions: perms.map((r) => ({ ...r.p, name: r.name, className: catalog.classes[sessions.find((x) => x.id === r.p.sessionId)!.classId]?.name })),
+  };
 }
 
 export async function getSessionByTokenHash(tokenHash: string) {

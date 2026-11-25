@@ -14,7 +14,7 @@ export default function MicroPause({ session, onClose }: { session: Ses; onClose
   const mod = session.module!;
   const total = mod.steps.length + 1;
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<(number | null)[]>(() => mod.quiz.map(() => null));
+  const [answers, setAnswers] = useState<(number | null)[]>(() => mod.questions.map(() => null));
   const [receipt, setReceipt] = useState<{ code: string; correct: number; total: number } | null>(null);
   const [pending, start] = useTransition();
   const { toast } = useLive();
@@ -22,7 +22,7 @@ export default function MicroPause({ session, onClose }: { session: Ses; onClose
   const inQuiz = step === mod.steps.length;
 
   const submit = () => start(async () => {
-    const r = await submitQuizAction({ sessionId: session.id, answers });
+    const r = await submitQuizAction({ sessionId: session.id, answers: mod.questions.map((q, i) => ({ qi: q.qi, oi: answers[i] ?? -1 })) });
     if (r.ok) setReceipt(r.data!);
     else toast(r.error, "warn");
   });
@@ -73,11 +73,12 @@ export default function MicroPause({ session, onClose }: { session: Ses; onClose
             ) : inQuiz ? (
               <motion.div key="quiz" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="space-y-5">
                 <p className="flex items-center gap-2 font-display text-lg font-bold"><Sparkles size={18} className="text-lilac-deep" /> {t.pause.quick}</p>
-                {mod.quiz.map((q, qi) => (
+                <p className="rounded-2xl bg-lilac/60 p-3 text-sm text-ink/70">{fmt(t.pause.paperNote, { n: mod.questions.length, bank: mod.bankSize })}</p>
+                {mod.questions.map((q, qi) => (
                   <fieldset key={qi}>
                     <legend className="mb-2 font-semibold">{qi + 1}. {q.q}</legend>
                     <div className="grid gap-2">
-                      {q.options.map((o, oi) => {
+                      {q.options.map(({ oi, text: o }) => {
                         const on = answers[qi] === oi;
                         return (
                           <motion.button key={oi} type="button" whileTap={{ scale: 0.98 }}

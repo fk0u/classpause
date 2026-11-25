@@ -7,6 +7,7 @@ import { publish } from "./bus";
 import { proposeSlots } from "./slot-engine";
 import { sendLecturerPrompt } from "./notifier";
 import { notifyUsers, rosterOf, fmt } from "./notify";
+import { scoreQuiz } from "./quiz";
 import { atLocal, localParts, startOfLocalDay, fmtRange, fmtDay } from "./time";
 
 export const PROMPT_LEAD_MIN = 120; // H-2h
@@ -168,7 +169,7 @@ export async function lockSlot(sessionId: string, slotId: string, actorId: strin
   return { ok: true as const, slot: slot as SlotProposal };
 }
 
-export async function submitQuiz(sessionId: string, userId: string, answers: number[]) {
+export async function submitQuiz(sessionId: string, userId: string, answers: { qi: number; oi: number }[]) {
   const [row] = await db.select({ ses: s.sessions, mod: s.microModules })
     .from(s.sessions)
     .innerJoin(s.microModules, eq(s.microModules.classId, s.sessions.classId))
@@ -176,16 +177,16 @@ export async function submitQuiz(sessionId: string, userId: string, answers: num
     .where(eq(s.sessions.id, sessionId)).limit(1);
   if (!row) return { ok: false as const, error: "You are not enrolled in this class." };
   if (row.ses.status !== "micropause") return { ok: false as const, error: "Micro-Pause is not active for this class." };
-  if (answers.length !== row.mod.quiz.length) return { ok: false as const, error: "Answer every question." };
+  const score = scoreQuiz(userId, sessionId, row.mod.quiz, answers);
+  if (!score) return { ok: false as const, error: "Answer every question on your paper." };
 
-  const correct = row.mod.quiz.reduce((n, q, i) => n + (q.answer === answers[i] ? 1 : 0), 0);
+  // One attempt per student: a second submit returns the first receipt instead of re-scoring.
   const code = `CP-${randomBytes(3).toString("hex").toUpperCase()}`;
-  const [rec] = await db.insert(s.attendanceReceipts)
-    .values({ sessionId, userId, correct, total: row.mod.quiz.length, code })
-    .onConflictDoUpdate({
-      target: [s.attendanceReceipts.sessionId, s.attendanceReceipts.userId],
-      set: { correct, total: row.mod.quiz.length },
-    }).returning();
+  const inserted = await db.insert(s.attendanceReceipts)
+    .values({ sessionId, userId, correct: score.correct, total: score.total, code })
+    .onConflictDoNothing().returning();
+  const [rec] = inserted.length ? inserted
+    : await db.select().from(s.attendanceReceipts).where(and(eq(s.attendanceReceipts.sessionId, sessionId), eq(s.attendanceReceipts.userId, userId)));
 
   publish({ type: "receipt", sessionId, classId: row.ses.classId, tone: "ok", message: "A student completed Micro-Pause" });
   return { ok: true as const, receipt: rec };
@@ -198,10 +199,13 @@ export async function requestPermission(sessionId: string, userId: string, type:
   if (!enr) return { ok: false as const, error: "You are not enrolled in this class." };
   await db.insert(s.permissions).values({ sessionId, userId, type, note })
     .onConflictDoUpdate({ target: [s.permissions.sessionId, s.permissions.userId], set: { type, note, status: "pending", decidedAt: null, decidedBy: null } });
-  publish({ type: "permission", kind: "request", sessionId, classId: enr.classId, tone: "info", message: "New permission request in the komti queue" });
+  publish({ type: "permission", kind: "request", sessionId, classId: enr.classId, tone: "info", message: "New leave request for the lecturer" });
   const k = await klassOf(enr.classId);
   const [who] = await db.select({ name: s.users.name }).from(s.users).where(eq(s.users.id, userId));
-  if (k.komtiId) await notifyUsers([k.komtiId], "request", (t) => ({ title: t.notif.request.title, body: fmt(t.notif.request.body, { name: who.name, course: k.name }), url: "/komti" }));
+  const msg = (t: Parameters<Parameters<typeof notifyUsers>[2]>[0], url: string) => ({ title: t.notif.request.title, body: fmt(t.notif.request.body, { name: who.name, course: k.name }), url });
+  // Straight to the lecturer, who decides; the komti gets a copy for visibility only.
+  await notifyUsers([k.lecturerId], "request", (t) => msg(t, "/lecturer"));
+  if (k.komtiId) await notifyUsers([k.komtiId], "request", (t) => msg(t, "/komti"));
   return { ok: true as const };
 }
 

@@ -7,13 +7,15 @@ import { lecturerAction } from "@/app/actions";
 import { LecturerCard } from "@/components/lecturer-card";
 import { STATUS, TONE } from "@/components/status";
 import DayTimeline from "@/components/day-timeline";
+import PermissionQueue from "@/components/permission-queue";
 import { useLive } from "@/components/live";
 import { fmtRange } from "@/lib/time";
 import { useT } from "@/lib/i18n/client";
 
-type Ses = Awaited<ReturnType<typeof getLecturerView>>[number];
+type View = Awaited<ReturnType<typeof getLecturerView>>;
+type Ses = View["sessions"][number];
 
-export default function LecturerBoard({ name, sessions }: { name: string; sessions: Ses[] }) {
+export default function LecturerBoard({ name, sessions, permissions }: { name: string; sessions: Ses[]; permissions: View["permissions"] }) {
   const { toast } = useLive();
   const t = useT();
   const waiting = sessions.filter((x) => x.status === "pending");
@@ -55,7 +57,8 @@ export default function LecturerBoard({ name, sessions }: { name: string; sessio
         </div>
       </section>
 
-      <aside className="space-y-5 lg:border-l lg:border-slate-200 lg:pl-8">
+      <aside className="space-y-8 lg:border-l lg:border-slate-200 lg:pl-8">
+        <PermissionQueue permissions={permissions} canDecide />
         <h2 className="font-display text-3xl font-bold tracking-tight">{t.lecturer.schedule}</h2>
         <DayTimeline items={sessions.map((x) => ({ id: x.id, title: x.klass.name, sub: x.room.code, startsAt: x.startsAt, endsAt: x.endsAt, status: x.status }))} />
       </aside>

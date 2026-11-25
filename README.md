@@ -9,7 +9,7 @@ Live: https://classpause.kousozo.tech (synthetic East Kalimantan campus dataset,
 1. **H-2h:** the server sends the lecturer a single-use 1-tap link (Telegram adapter; logged when no bot token is set).
 2. **Lecturer taps once:** confirm, delay 20 min, reschedule, or convert to Micro-Pause.
 3. **Reschedule:** the slot engine checks every enrolled student’s timetable, the lecturer’s classes and room capacity/bookings, then offers the best slot, an alternative and an async option. The komti locks one and it is broadcast.
-4. **No reply by H+15m:** the server switches the class to Micro-Pause. Students do a 15-minute module and quiz; finishing it issues an attendance receipt.
+4. **No reply by H+15m:** the server switches the class to Micro-Pause. Students do a 15-minute module and a quiz drawn per student from a question bank (different questions and order for each student, one attempt, answers never sent to the browser); finishing it issues an attendance receipt.
 5. Every screen updates live over Server-Sent Events.
 
 ## Pages
@@ -18,8 +18,8 @@ Live: https://classpause.kousozo.tech (synthetic East Kalimantan campus dataset,
 | --- | --- | --- |
 | `/login` | everyone | Persona picker (SSO placeholder), EN/ID switch |
 | `/student` | student, komti | Commute radar, Micro-Pause play card, leave request, day calendar |
-| `/komti` | komti | KPI tiles, slot engine, request cards, activity feed |
-| `/lecturer` | lecturer | 1-tap cards, today's schedule |
+| `/komti` | komti | KPI tiles, slot engine, read-only leave requests, activity feed |
+| `/lecturer` | lecturer | 1-tap cards, leave-request decisions, today's schedule |
 | `/l/[token]` | lecturer (no login) | Single-use magic-link card |
 | `/schedule` | everyone | Weekly timetable grid with a "now" line |
 | `/inbox` | everyone | Notification history, unread badges, mark read |

@@ -81,8 +81,13 @@ export async function decidePermissionAction(input: unknown): Promise<ActionResu
   if (!p.success) return zodFail(p.error);
   const [perm] = await db.select({ sessionId: s.permissions.sessionId }).from(s.permissions).where(eq(s.permissions.id, p.data.permissionId));
   if (!perm) return fail("Not found");
-  const u = await requireKomtiOf(perm.sessionId);
-  if (!u) return fail("Komti of this class only");
+  // Only the class's lecturer decides, so a request can't stall with the komti.
+  const u = await currentUser();
+  if (!u || u.role !== "lecturer") return fail("Lecturer of this class only");
+  const [own] = await db.select({ id: s.sessions.id }).from(s.sessions)
+    .innerJoin(s.classes, eq(s.classes.id, s.sessions.classId))
+    .where(and(eq(s.sessions.id, perm.sessionId), eq(s.classes.lecturerId, u.id))).limit(1);
+  if (!own) return fail("Lecturer of this class only");
   const r = await P.decidePermission(p.data.permissionId, p.data.decision, u.id);
   return r.ok ? { ok: true } : r;
 }
@@ -94,7 +99,7 @@ export async function requestPermissionAction(input: unknown): Promise<ActionRes
   const p = permissionSchema.safeParse(input);
   if (!p.success) return zodFail(p.error);
   const r = await P.requestPermission(p.data.sessionId, u.id, p.data.type, p.data.note);
-  return r.ok ? { ok: true, message: "Sent to your komti" } : r;
+  return r.ok ? { ok: true, message: "Sent to your lecturer" } : r;
 }
 
 export async function submitQuizAction(input: unknown): Promise<ActionResult<{ code: string; correct: number; total: number }>> {

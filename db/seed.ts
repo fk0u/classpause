@@ -5,6 +5,7 @@
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as s from "./schema";
+import { MODULES } from "./modules";
 
 const sql = postgres(process.env.DATABASE_URL!, { max: 1, onnotice: () => {} });
 const db = drizzle(sql, { schema: s });
@@ -85,38 +86,7 @@ async function main() {
     classId: classes[c].id, roomId: room(r).id, day, startMin: BLOCKS[b], endMin: BLOCKS[b] + LEN,
   })));
 
-  await db.insert(s.microModules).values([
-    {
-      classId: classes[0].id, title: "NAND as a Universal Gate", minutes: 15,
-      steps: [
-        { title: "Why NAND?", body: "A NAND gate outputs 0 only when every input is 1. That single rule is enough to build NOT, AND and OR, which means any logic function can be built from NAND alone." },
-        { title: "Build NOT and AND", body: "Tie both inputs together and NAND becomes NOT. Feed a NAND into a NAND-as-NOT and you get AND. Two gates, one primitive." },
-        { title: "Build OR", body: "Invert each input with a NAND-as-NOT, then NAND the results: by De Morgan, ¬(¬A ∧ ¬B) = A ∨ B. Three NAND gates make an OR." },
-      ],
-      quiz: [
-        { q: "NAND(1,1) equals…", options: ["0", "1"], answer: 0 },
-        { q: "NAND with both inputs tied together behaves like…", options: ["AND", "OR", "NOT"], answer: 2 },
-        { q: "How many NAND gates build an OR?", options: ["2", "3", "4"], answer: 1 },
-        { q: "NAND is called universal because…", options: ["It is the fastest gate", "Any logic function can be built from it", "It uses no transistors"], answer: 1 },
-      ],
-    },
-    {
-      classId: classes[1].id, title: "Big-O in 15 Minutes", minutes: 15,
-      steps: [
-        { title: "Growth, not speed", body: "Big-O describes how running time grows with input size n, ignoring constants." },
-        { title: "Common classes", body: "O(1) constant, O(log n) binary search, O(n) a single loop, O(n log n) good sorts, O(n²) nested loops." },
-      ],
-      quiz: [
-        { q: "Binary search on a sorted array is…", options: ["O(n)", "O(log n)", "O(n²)"], answer: 1 },
-        { q: "Two nested loops over n items is usually…", options: ["O(n)", "O(n log n)", "O(n²)"], answer: 2 },
-      ],
-    },
-    {
-      classId: classes[2].id, title: "Propositional Logic Warm-up", minutes: 15,
-      steps: [{ title: "Implication", body: "p → q is false only when p is true and q is false." }],
-      quiz: [{ q: "p → q when p = T, q = F is…", options: ["True", "False"], answer: 1 }],
-    },
-  ]);
+  await db.insert(s.microModules).values(classes.filter((c) => MODULES[c.code]).map((c) => ({ classId: c.id, ...MODULES[c.code] })));
 
   console.log(`seeded: ${lecturers.length} lecturers, ${students.length} students, ${classes.length} classes, ${plan.length} meetings`);
   await sql.end();

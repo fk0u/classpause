@@ -24,7 +24,7 @@ export const decidePermissionSchema = z.object({ permissionId: uuid, decision: z
 
 export const quizSubmitSchema = z.object({
   sessionId: uuid,
-  answers: z.array(z.number().int().min(0).max(9)).min(1).max(20),
+  answers: z.array(z.object({ qi: z.number().int().min(0).max(99), oi: z.number().int().min(0).max(9) })).min(1).max(20),
 });
 
 export const signInSchema = z.object({ userId: uuid });

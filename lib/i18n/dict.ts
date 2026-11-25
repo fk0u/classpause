@@ -30,11 +30,12 @@ const en = {
   },
   pause: {
     step: "Step {n} of {total}", quick: "Quick check", submit: "Submit & log attendance", logged: "Attendance logged",
-    loggedLead: "Score {c}/{t}. Your komti and lecturer can see this receipt.", receipt: "Receipt",
+    loggedLead: "Score {c}/{t}. Your lecturer can see this receipt.", receipt: "Receipt",
+    paperNote: "Your paper is unique: {n} questions drawn just for you from a bank of {bank}, in your own order. Classmates get different ones, and you get one attempt.",
   },
   leave: {
-    title: "Request leave", lead: "{course} · goes straight to your komti’s queue", sick: "Sick", dispensation: "Dispensation",
-    reason: "Reason", phSick: "e.g. Fever, clinic letter attached", phDisp: "e.g. Regional debate competition", send: "Send to komti", sent: "Sent to your komti",
+    title: "Request leave", lead: "{course} · goes straight to your lecturer; your komti gets a copy", sick: "Sick", dispensation: "Dispensation",
+    reason: "Reason", phSick: "e.g. Fever, clinic letter attached", phDisp: "e.g. Regional debate competition", send: "Send to lecturer", sent: "Sent to your lecturer",
   },
   komti: {
     kicker: "Komti · Informatics ’26 Class A", title: "Class Operations 🧭", statClasses: "Classes today", statTimers: "SLA timers",
@@ -43,6 +44,7 @@ const en = {
     optimal: "Optimal", alt: "Alternative", async: "Async", asyncSub: "15-min module + Q&A thread", clash: "{n} clash", noClash: "0 clashes",
     lock: "Lock & broadcast to {n} students", requests: "Requests 🙋", noRequests: "No requests yet.", decline: "Decline", approve: "Approve",
     excused: "Excused 👏", declined: "Declined", activity: "Activity",
+    lecturerDecides: "The lecturer approves or declines; you see every request.", awaitingLecturer: "Waiting for the lecturer",
   },
   lecturer: {
     title: "My Classes Today 🎓", lead: "These cards normally reach you on Telegram, WhatsApp or as a push notification. Four options cover every outcome, so you never type a reply.",
@@ -115,11 +117,12 @@ const id: DeepString<Dict> = {
   },
   pause: {
     step: "Langkah {n} dari {total}", quick: "Cek singkat", submit: "Kirim & catat kehadiran", logged: "Kehadiran tercatat",
-    loggedLead: "Skor {c}/{t}. Komti dan dosen bisa melihat bukti ini.", receipt: "Bukti",
+    loggedLead: "Skor {c}/{t}. Dosen bisa melihat bukti ini.", receipt: "Bukti",
+    paperNote: "Soalmu unik: {n} soal dipilih khusus untukmu dari bank {bank} soal, dengan urutan sendiri. Teman sekelas mendapat soal berbeda, dan hanya ada satu kesempatan.",
   },
   leave: {
-    title: "Ajukan izin", lead: "{course} · langsung masuk antrean komti", sick: "Sakit", dispensation: "Dispensasi",
-    reason: "Alasan", phSick: "mis. Demam, ada surat klinik", phDisp: "mis. Lomba debat tingkat provinsi", send: "Kirim ke komti", sent: "Terkirim ke komti",
+    title: "Ajukan izin", lead: "{course} · langsung ke dosen; komti mendapat salinan", sick: "Sakit", dispensation: "Dispensasi",
+    reason: "Alasan", phSick: "mis. Demam, ada surat klinik", phDisp: "mis. Lomba debat tingkat provinsi", send: "Kirim ke dosen", sent: "Terkirim ke dosen",
   },
   komti: {
     kicker: "Komti · Informatika ’26 Kelas A", title: "Operasi Kelas 🧭", statClasses: "Kelas hari ini", statTimers: "Timer SLA",
@@ -128,6 +131,7 @@ const id: DeepString<Dict> = {
     optimal: "Optimal", alt: "Alternatif", async: "Asinkron", asyncSub: "Modul 15 mnt + thread tanya jawab", clash: "{n} bentrok", noClash: "0 bentrok",
     lock: "Kunci & umumkan ke {n} mahasiswa", requests: "Izin 🙋", noRequests: "Belum ada izin.", decline: "Tolak", approve: "Setujui",
     excused: "Diizinkan 👏", declined: "Ditolak", activity: "Aktivitas",
+    lecturerDecides: "Dosen yang menyetujui atau menolak; kamu bisa melihat semua izin.", awaitingLecturer: "Menunggu dosen",
   },
   lecturer: {
     title: "Kelas Saya Hari Ini 🎓", lead: "Kartu ini biasanya sampai lewat Telegram, WhatsApp, atau notifikasi push. Empat pilihan mencakup semua kemungkinan, jadi Anda tidak perlu mengetik.",
