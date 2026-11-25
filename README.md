@@ -75,4 +75,7 @@ Environment variables: see `.env.example`. `DEMO_MODE=true` shows the demo clock
 
 ## AI disclosure
 
-Built with help from Claude Code (Anthropic). All data in this repository is synthetic.
+- **Claude Code (Anthropic):** generated application code, the design system and deployment scripts, and drafted the semifinal proposal, pitch deck and video script. The team wrote the requirements, reviewed and tested the output, and owns all decisions.
+- **Claude Sonnet 5.5 (Anthropic):** helped draft administrative documents (survey report formatting, abstract wording) in the preliminary round.
+
+All data in this repository is synthetic.
