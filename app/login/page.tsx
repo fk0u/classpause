@@ -26,8 +26,8 @@ export default async function LoginPage() {
       <span aria-hidden className="float absolute left-[20%] top-[55%] h-3 w-3 rounded-full bg-butter [animation-delay:2s]" />
       <span aria-hidden className="float absolute right-[30%] top-[8%] h-3 w-3 rounded-full bg-white/70 [animation-delay:3s]" />
 
-      <div className="relative mx-auto grid min-h-dvh max-w-6xl items-center gap-10 px-5 py-12 lg:grid-cols-2">
-        <section>
+      <div className="relative mx-auto grid min-h-dvh max-w-6xl grid-cols-1 items-center gap-10 px-5 py-12 lg:grid-cols-2">
+        <section className="min-w-0">
           <div className="relative mx-auto mb-8 aspect-square w-64 lg:mx-0 lg:w-80">
             <div className="absolute inset-[12%] rounded-full border border-white/10" />
             <div className="absolute inset-0 rounded-full border border-white/10" />
@@ -48,7 +48,7 @@ export default async function LoginPage() {
           </p>
         </section>
 
-        <section className="rounded-[36px] bg-white p-6 text-ink sm:p-8">
+        <section className="min-w-0 rounded-[36px] bg-white p-6 text-ink sm:p-8">
           <div className="flex justify-center"><LangSwitch /></div>
           <p className="mt-4 text-center text-sm text-slate-500">{t.login.note}</p>
           <h2 className="mt-1 text-center font-display text-2xl font-bold">{t.login.choose}</h2>

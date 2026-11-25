@@ -60,9 +60,9 @@ export default function InboxView({ items }: { items: Item[] }) {
                     {!i.readAt && <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-crimson ring-2 ring-white" />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="truncate font-display text-lg font-semibold">{i.title}</span>
-                      <span className="ml-auto shrink-0 font-mono text-[11px] text-ink/50">{fmtDateTime(i.createdAt, t.locale)}</span>
+                    <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <span className="font-display text-lg font-semibold leading-tight">{i.title}</span>
+                      <span className="shrink-0 font-mono text-[11px] text-ink/50 sm:ml-auto">{fmtDateTime(i.createdAt, t.locale)}</span>
                     </span>
                     <span className="mt-0.5 block text-sm text-ink/70">{i.body}</span>
                   </span>

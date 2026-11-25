@@ -18,7 +18,7 @@ export default function Dock({ role, unread, demo }: {
   const { toast } = useLive();
   const t = useT();
   const path = usePathname();
-  const btn = "relative flex h-12 w-12 items-center justify-center rounded-full text-ink transition hover:scale-110 disabled:opacity-40";
+  const btn = "relative flex h-11 w-11 items-center justify-center rounded-full text-ink transition hover:scale-110 disabled:opacity-40";
 
   return (
     <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.2 }}
@@ -29,9 +29,9 @@ export default function Dock({ role, unread, demo }: {
             const on = path === it.href;
             return (
               <Link key={it.href} href={it.href} aria-label={it.label}
-                className={`relative flex h-12 items-center justify-center gap-2 rounded-full transition ${on ? "bg-white px-4 text-ink" : "w-11 text-white/70"}`}>
+                className={`relative flex h-11 items-center justify-center gap-2 rounded-full transition ${on ? "bg-white px-3 text-ink" : "w-10 text-white/70"}`}>
                 <it.icon size={19} />
-                {on && <span className="text-sm font-semibold">{it.label}</span>}
+                {on && <span className={`whitespace-nowrap text-sm font-semibold ${demo ? "hidden min-[440px]:inline" : ""}`}>{it.label}</span>}
                 {"badge" in it && unread > 0 && <span className="absolute right-1 top-1.5 h-2.5 w-2.5 rounded-full bg-rose ring-2 ring-ink" />}
               </Link>
             );
@@ -40,7 +40,7 @@ export default function Dock({ role, unread, demo }: {
 
         {demo && (
           <>
-            <span className="mx-1 h-8 w-px bg-white/15 md:hidden" />
+            <span className="h-7 w-px bg-white/15 md:hidden" />
             <span className="ml-2 hidden items-center gap-1.5 text-xs font-semibold text-white/70 md:flex">
               {pending && <Loader2 size={14} className="animate-spin" />} {t.demo.clock}
             </span>
