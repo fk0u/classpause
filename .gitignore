@@ -13,3 +13,5 @@ docs/sources/
 
 !.env.example
 docs/proposal/*.pdf
+docs/proposal/.render.tmp.html
+submissions/

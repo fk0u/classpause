@@ -84,6 +84,10 @@
   li { margin-bottom: 1.1mm; }
 
   /* flow diagram */
+  .shots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; align-items: end; }
+  .shot { text-align: center; font-size: 7.4pt; color: var(--soft); }
+  .shot .frame { background: var(--ink); border-radius: 5mm; padding: 1.2mm; margin-bottom: 1.4mm; }
+  .shot img { width: 100%; display: block; border-radius: 4mm; }
   .flow { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 2mm; }
   .flow .step { border-radius: 4.5mm; padding: 3mm; min-height: 30mm; display: flex; flex-direction: column; }
   .flow .t { font: 600 7.4pt "JetBrains Mono"; color: var(--soft); }
@@ -189,6 +193,7 @@
     <tr><td>Wasted a commute to a cancelled class</td><td>52.6% (20)</td></tr>
     <tr><td>Time lost per incident</td><td>mean 52.1 min (median 45); 55.3% lose 30 min or more</td></tr>
   </table>
+  <p><b>The cost:</b> 4.25 incidents × 52.1 minutes ≈ 221 minutes, or about 3.7 hours, lost per affected student every three months; across our 38 affected respondents that is roughly 140 hours in one quarter (respondents only, not a campus-wide estimate).</p>
   <p>Answers to the “most disruptive issue” question are not evenly spread: a chi-square goodness-of-fit test gives χ² = 13.68 (df = 5, p = 0.018), so the concentration on class uncertainty is unlikely to be chance.</p>
 
   <h3>2.4 Existing alternatives</h3>
@@ -218,6 +223,15 @@
     </div>
     <div class="rail"></div>
     <figcaption>Figure 1 · One trigger, four outcomes. Each outcome owns one colour on every screen: card, chip, calendar block and notification.</figcaption>
+  </figure>
+  <figure>
+    <div class="shots">
+      <div class="shot"><div class="frame"><img src="img/lecturer.jpg" alt="Lecturer 1-tap card"></div>Lecturer · 1-tap card, 15:00 SLA ring</div>
+      <div class="shot"><div class="frame"><img src="img/radar.jpg" alt="Student Commute Radar"></div>Student · Commute Radar</div>
+      <div class="shot"><div class="frame"><img src="img/receipt.jpg" alt="Attendance receipt"></div>Micro-Pause · quiz 4/4 and receipt</div>
+      <div class="shot"><div class="frame"><img src="img/inbox.jpg" alt="Notification inbox"></div>Inbox · push history in the user’s language</div>
+    </div>
+    <figcaption>Figure 2 · Screens from the live deployment at classpause.kousozo.tech (synthetic data, 25 November 2026).</figcaption>
   </figure>
 
   <h3>3.2 Value and scope</h3>
@@ -263,7 +277,11 @@
         <div class="box"><strong>Telegram adapter</strong>Optional lecturer channel</div>
       </div>
     </div>
-    <figcaption>Figure 2 · Architecture as deployed on 24 November 2026. One Node process behind nginx with HTTPS; PostgreSQL in its own container.</figcaption>
+    <figcaption>Figure 3 · Architecture as deployed on 24 November 2026. One Node process behind nginx with HTTPS; PostgreSQL in its own container.</figcaption>
+  </figure>
+
+  <figure>
+    <div class="shot"><div class="frame" style="border-radius:4mm"><img src="img/komti.jpg" alt="Komti console with the slot engine" style="border-radius:3mm"></div>Komti console · the slot engine checked 40 timetables over 36 candidate blocks (6 days × 6) and offers 3 options ranked by clashes</div>
   </figure>
 
   <h3>4.2 Core features and status</h3>

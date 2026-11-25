@@ -10,6 +10,8 @@ const schema = z.object({
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().default("mailto:admin@classpause.test"),
+  SUBMIS_PASSWORD: z.string().min(8).optional(),
+  SUBMIS_DIR: z.string().default("./submissions"),
   DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
 });
 
