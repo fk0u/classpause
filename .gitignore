@@ -12,3 +12,4 @@ docs/sources/
 .env*
 
 !.env.example
+docs/proposal/*.pdf

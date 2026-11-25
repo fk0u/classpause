@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ClassPause — Semifinal Proposal · STACK 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400..800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  /* ClassPause design system, print edition. Margins: left 4 cm, top/right/bottom 3 cm. */
+  :root {
+    --ink:#0B0B0F; --paper:#F4F4F1; --white:#FFFFFF; --soft:#55555F; --line:#E4E4E0;
+    --mint:#CFF1D8; --mint-d:#15803D; --butter:#F9E7AE; --butter-d:#A16207;
+    --lilac:#EBD3F8; --lilac-d:#7E3AF2; --sky:#D3F0F8; --sky-d:#0E7490; --rose:#FCD5DE; --rose-d:#BE123C;
+  }
+  @page {
+    size: A4;
+    margin: 3cm 3cm 3cm 4cm;
+    @bottom-left { content: "ClassPause · STACK 2026 Semifinal"; font: 500 7.5pt Inter, sans-serif; color: #8A8A94; }
+    @bottom-right { content: counter(page); font: 700 9pt Outfit, sans-serif; color: #0B0B0F; }
+  }
+  @page :first { @bottom-left { content: none; } @bottom-right { content: none; } }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font: 400 9.2pt/1.5 Inter, sans-serif; color: var(--ink); }
+  h1, h2, h3, .display { font-family: Outfit, sans-serif; letter-spacing: -0.01em; margin: 0; }
+  h2 { font-size: 21pt; font-weight: 700; line-height: 1.05; margin: 0 0 2mm; }
+  h3 { font-size: 11pt; font-weight: 600; margin: 4mm 0 1.2mm; break-after: avoid; }
+  p { margin: 0 0 2.4mm; }
+  a { color: inherit; }
+  .mono { font-family: "JetBrains Mono", monospace; }
+  .soft { color: var(--soft); }
+  .small { font-size: 8pt; }
+
+  /* ---------- cover ---------- */
+  .cover { height: 23.7cm; border-radius: 9mm; background: var(--ink); color: #F4F4F1; padding: 12mm 11mm; position: relative; overflow: hidden; display: flex; flex-direction: column; break-after: page; }
+  .cover .dot { position: absolute; border-radius: 50%; }
+  .cover .kicker { max-width: 105mm; font: 600 7.5pt Inter; letter-spacing: .18em; text-transform: uppercase; color: #9A9AA6; }
+  .cover h1 { font-size: 46pt; font-weight: 700; line-height: .95; margin-top: 30mm; }
+  .cover .sub { font: 500 13pt/1.35 Outfit; color: #C9C9D1; margin-top: 5mm; max-width: 110mm; }
+  .cover .pills { display: flex; flex-wrap: wrap; gap: 2mm; margin-top: 8mm; }
+  .pill { display: inline-block; border-radius: 99px; padding: 1.3mm 3.6mm; font: 600 8pt Inter; color: var(--ink); }
+  .cover .meta { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .cover .meta div { background: #1B1B22; border-radius: 5mm; padding: 3.5mm 4mm; }
+  .cover .meta b { display: block; font: 600 7pt Inter; letter-spacing: .12em; text-transform: uppercase; color: #9A9AA6; margin-bottom: .8mm; }
+  .cover .meta span { font: 500 9pt/1.35 Outfit; }
+
+  /* ---------- sections ---------- */
+  section.chapter { margin-top: 9mm; }
+  section.chapter.newpage { break-before: page; margin-top: 0; }
+  .chap-head { break-after: avoid; display: flex; align-items: flex-end; gap: 4mm; margin-bottom: 4mm; padding-bottom: 3mm; border-bottom: 1.2pt solid var(--ink); }
+  .chap-no { font: 700 34pt/0.8 Outfit; }
+  .chap-head .tag { margin-left: auto; }
+  .lede { break-after: avoid; font: 500 12pt/1.4 Outfit; margin: 0 0 4mm; }
+
+  /* ---------- components ---------- */
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.4mm; margin: 3mm 0 4mm; }
+  .tile { border-radius: 4.5mm; padding: 3.2mm 2.5mm; text-align: center; }
+  .tile .n { font: 700 19pt/1 Outfit; }
+  .tile .l { font-size: 7.4pt; line-height: 1.3; color: var(--soft); margin-top: 1mm; }
+  .ghost { border: 1pt dashed #B9B9C2; }
+  .bg-mint{background:var(--mint)} .bg-butter{background:var(--butter)} .bg-lilac{background:var(--lilac)} .bg-sky{background:var(--sky)} .bg-rose{background:var(--rose)} .bg-paper{background:var(--paper)} .bg-ink{background:var(--ink);color:#F4F4F1}
+
+  table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 2mm 0 4mm; font-size: 8.4pt; line-height: 1.4; break-inside: auto; }
+  th { text-align: left; font: 600 7.4pt Inter; letter-spacing: .06em; text-transform: uppercase; color: var(--soft); padding: 2mm 2.4mm; background: var(--paper); }
+  th:first-child { border-radius: 3mm 0 0 3mm; } th:last-child { border-radius: 0 3mm 3mm 0; }
+  td { padding: 2mm 2.4mm; border-bottom: .6pt solid var(--line); vertical-align: top; }
+  tr { break-inside: avoid; }
+  td b { font-weight: 600; }
+  .status { display: inline-block; border-radius: 99px; padding: .4mm 2.2mm; font: 600 7.2pt Inter; white-space: nowrap; }
+
+  .callout { border-radius: 5mm; padding: 4mm 4.5mm; margin: 3mm 0 4mm; break-inside: avoid; }
+  .callout h4 { font: 600 10.5pt Outfit; margin: 0 0 1mm; }
+  .callout p:last-child { margin: 0; }
+  .note { border-radius: 4mm; padding: 2.6mm 3.4mm; font-size: 8pt; background: var(--butter); margin: 2mm 0 4mm; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.6mm; }
+  .card { border-radius: 5mm; padding: 3.6mm 3.8mm; break-inside: avoid; }
+  .card h4 { font: 600 10.5pt/1.2 Outfit; margin: 0 0 1mm; }
+  .card p { font-size: 8.4pt; line-height: 1.45; margin: 0; color: #33333B; }
+  .quote { font: 500 12.5pt/1.35 Outfit; border-left: 2.4pt solid var(--lilac-d); padding-left: 4mm; margin: 4mm 0; }
+  figure { margin: 3mm 0 4mm; break-inside: avoid; }
+  figcaption { font-size: 7.6pt; color: var(--soft); margin-top: 1.6mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 4.5mm; }
+  li { margin-bottom: 1.1mm; }
+
+  /* flow diagram */
+  .flow { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 2mm; }
+  .flow .step { border-radius: 4.5mm; padding: 3mm; min-height: 30mm; display: flex; flex-direction: column; }
+  .flow .t { font: 600 7.4pt "JetBrains Mono"; color: var(--soft); }
+  .flow h4 { font: 600 10pt/1.15 Outfit; margin: 1mm 0; }
+  .flow p { font-size: 7.6pt; line-height: 1.35; margin: 0; color: #33333B; }
+  .rail { height: 2mm; margin: 2mm 4mm 0; border-top: 1.2pt dashed var(--mint-d); }
+
+  /* architecture */
+  .arch { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 2.4mm; align-items: stretch; }
+  .arch .col { border-radius: 5mm; padding: 3mm; display: flex; flex-direction: column; gap: 1.6mm; }
+  .arch .col > b { font: 600 7.2pt Inter; letter-spacing: .1em; text-transform: uppercase; color: var(--soft); }
+  .arch .box { background: var(--white); border-radius: 3mm; padding: 1.8mm 2.4mm; font-size: 7.8pt; line-height: 1.3; }
+  .arch .box strong { font: 600 8.6pt Outfit; display: block; }
+
+  /* timeline */
+  .tl { position: relative; padding-left: 7mm; margin: 2mm 0 4mm; }
+  .tl::before { content: ""; position: absolute; left: 2.2mm; top: 1mm; bottom: 1mm; border-left: 1.2pt dashed var(--mint-d); }
+  .tl .it { position: relative; margin-bottom: 2.4mm; break-inside: avoid; }
+  .tl .it::before { content: ""; position: absolute; left: -6.1mm; top: 1.2mm; width: 2.6mm; height: 2.6mm; border-radius: 50%; background: var(--d, var(--mint-d)); box-shadow: 0 0 0 1.2pt #fff; }
+  .tl .d { font: 600 7.6pt "JetBrains Mono"; color: var(--soft); }
+  .tl .w { font: 600 10pt Outfit; }
+
+  .sig { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin-top: 18mm; }
+  .sig div { border-top: .8pt solid var(--ink); padding-top: 2mm; font-size: 8.4pt; }
+  .refs li { font-size: 8.4pt; }
+</style>
+</head>
+<body>
+
+<!-- ================= COVER ================= -->
+<div class="cover">
+  <span class="dot" style="right:16mm;top:14mm;width:12mm;height:12mm;background:var(--lilac)"></span>
+  <span class="dot" style="right:34mm;top:40mm;width:5mm;height:5mm;background:var(--mint)"></span>
+  <span class="dot" style="right:12mm;top:78mm;width:8mm;height:8mm;background:var(--butter)"></span>
+  <span class="dot" style="left:-14mm;bottom:70mm;width:36mm;height:36mm;background:#1B1B22"></span>
+  <div class="kicker">STACK 2026 · Semifinal Proposal · Case 1: Smarter Campus and Learning</div>
+  <h1>ClassPause</h1>
+  <div class="sub">Autonomous Class Coordination Protocol and Micro-Learning Continuity Hub</div>
+  <div class="pills">
+    <span class="pill bg-mint">Live: classpause.kousozo.tech</span>
+    <span class="pill bg-lilac">Next.js · PostgreSQL · PWA</span>
+    <span class="pill bg-butter">Web Push · EN / ID</span>
+  </div>
+  <div class="meta">
+    <div><b>Team</b><span>Bug itu fitur</span></div>
+    <div><b>Repository</b><span>github.com/fk0u/classpause</span></div>
+    <div style="grid-column:span 2"><b>Members</b><span>Al-Ghani Desta Setyawan (Team Leader, UMKT) · Andhika Galih Isya Putra (ITK) · Johann Ariel Givel Filemon Silalahi (Unmul)</span></div>
+    <div style="grid-column:span 2"><b>Date</b><span>24 November 2026 · Samarinda, East Kalimantan</span></div>
+  </div>
+</div>
+
+<!-- ================= 1 ================= -->
+<section class="chapter" style="margin-top:0">
+  <div class="chap-head"><span class="chap-no">01</span><h2>Project and Team Identity</h2></div>
+  <p class="lede">ClassPause replaces WhatsApp back-and-forth about class status with a 1-tap lecturer confirmation, a commute signal for students, and a 15-minute learning fallback when a class does not happen.</p>
+  <table>
+    <tr><th style="width:32%">Item</th><th>Detail</th></tr>
+    <tr><td>Project title</td><td><b>ClassPause:</b> Autonomous Class Coordination Protocol and Micro-Learning Continuity Hub</td></tr>
+    <tr><td>Team name</td><td>Bug itu fitur</td></tr>
+    <tr><td>Selected case</td><td>Case 1: Smarter Campus and Learning</td></tr>
+    <tr><td>Live prototype</td><td class="mono">https://classpause.kousozo.tech</td></tr>
+    <tr><td>Repository</td><td class="mono">https://github.com/fk0u/classpause</td></tr>
+  </table>
+  <table>
+    <tr><th style="width:30%">Member</th><th style="width:30%">Campus</th><th>Role</th></tr>
+    <tr><td><b>Al-Ghani Desta Setyawan</b><br><span class="soft small">Team Leader · Hacker</span></td><td>Universitas Muhammadiyah Kalimantan Timur (UMKT)</td><td>All application code (full stack and deployment), research synthesis, proposal lead, field research</td></tr>
+    <tr><td><b>Andhika Galih Isya Putra</b><br><span class="soft small">Hipster</span></td><td>Institut Teknologi Kalimantan (ITK)</td><td>UI/UX design and visual direction, alternatives audit, field research</td></tr>
+    <tr><td><b>Johann Ariel Givel Filemon Silalahi</b><br><span class="soft small">Hustler</span></td><td>Universitas Mulawarman (Unmul)</td><td>Business model, go-to-market and pitch, survey data processing, field research</td></tr>
+  </table>
+</section>
+
+<!-- ================= 2 ================= -->
+<section class="chapter newpage">
+  <div class="chap-head"><span class="chap-no">02</span><h2>Problem and User Analysis</h2></div>
+  <p class="lede">84.2% of affected students (32 of 38) faced unclear lecturer attendance or sudden rescheduling in the last three months, and 52.6% travelled to campus for a class that was then cancelled.</p>
+
+  <h3>2.1 Problem context</h3>
+  <p>Across three East Kalimantan universities, class status is coordinated by chat. A lecturer cancels late or not at all, the class coordinator (<i>komti</i>) chases the lecturer one-to-one, and students wait or commute without knowing. One respondent was told at 09:10 that an 08:00 class would not run. Campus LMS outages at peak hours (08:00, 13:00, 22:00–23:00) also cause students who were present to be marked absent (<i>Alpa</i>).</p>
+
+  <div class="tiles">
+    <div class="tile bg-sky"><div class="n">84.2%</div><div class="l">faced class status uncertainty</div></div>
+    <div class="tile bg-mint"><div class="n">50.0%</div><div class="l">ranked it the most disruptive issue</div></div>
+    <div class="tile ghost"><div class="n">52.6%</div><div class="l">wasted a commute</div></div>
+    <div class="tile bg-lilac"><div class="n">52 min</div><div class="l">lost per incident (mean)</div></div>
+  </div>
+
+  <h3>2.2 Target users</h3>
+  <table>
+    <tr><th style="width:24%">User</th><th style="width:34%">Need</th><th>Current pain</th></tr>
+    <tr><td><span class="status bg-mint">Students</span></td><td>Know before leaving home whether a class runs</td><td>Wasted commutes, idle gaps of 1–3 hours, unfair absence marks</td></tr>
+    <tr><td><span class="status bg-lilac">Komti / PJ Matkul</span></td><td>Confirm classes and agree makeup slots without chasing</td><td>Manual 1-to-1 chats, slow or no replies, conflicting information</td></tr>
+    <tr><td><span class="status bg-butter">Lecturers</span></td><td>Tell 40 students the status in seconds</td><td>Free-text replies, no view of slots that avoid student or room clashes</td></tr>
+  </table>
+
+  <h3>2.3 Supporting evidence</h3>
+  <p>We ran the <i>Kaltim Campus Service Survey</i> (N = 48; 46 active students; 38 affected in the last three months) across UMKT, Unmul, ITK and six other campuses, plus three months of field observation by each member.</p>
+  <table>
+    <tr><th style="width:62%">Finding (n = 38 affected students)</th><th>Result</th></tr>
+    <tr><td>Class status uncertainty or sudden rescheduling (union of two items)</td><td>84.2% (32), 95% CI ±11.6 pp</td></tr>
+    <tr><td>Ranked it the single most disruptive issue</td><td>50.0% (19)</td></tr>
+    <tr><td>Problem recurs (2 or more times in 3 months)</td><td>89.5% (34); mean 4.25 incidents</td></tr>
+    <tr><td>Happened within the last 7 days</td><td>63.2% (24)</td></tr>
+    <tr><td>Wasted a commute to a cancelled class</td><td>52.6% (20)</td></tr>
+    <tr><td>Time lost per incident</td><td>mean 52.1 min (median 45); 55.3% lose 30 min or more</td></tr>
+  </table>
+  <p>Answers to the “most disruptive issue” question are not evenly spread: a chi-square goodness-of-fit test gives χ² = 13.68 (df = 5, p = 0.018), so the concentration on class uncertainty is unlikely to be chance.</p>
+
+  <h3>2.4 Existing alternatives</h3>
+  <table>
+    <tr><th style="width:26%">Alternative</th><th style="width:24%">Used by</th><th>Why it fails</th></tr>
+    <tr><td>WhatsApp class groups</td><td>60.5% of affected students</td><td>Slow or unanswered replies (52.6%), message clutter</td></tr>
+    <tr><td>Asking the komti</td><td>42.1%</td><td>Komti also waits on the lecturer; conflicting information (36.8%)</td></tr>
+    <tr><td>Messaging the lecturer</td><td>26.3%</td><td>Lecturer must invent a new slot in free text</td></tr>
+    <tr><td>Campus SIAKAD / LMS</td><td>All campuses</td><td>Static timetables; outages at peak hours</td></tr>
+    <tr><td>“Polite chat template” tools</td><td>A senior team at Unmul</td><td>Still free-text negotiation; the lecturer still has to work out a clash-free slot</td></tr>
+  </table>
+  <div class="quote">The gap is not politeness but decision load: lecturers do not reply because answering well requires checking 40 timetables and free rooms.</div>
+</section>
+
+<!-- ================= 3 ================= -->
+<section class="chapter newpage">
+  <div class="chap-head"><span class="chap-no">03</span><h2>Proposed Solution</h2></div>
+  <p class="lede">ClassPause turns class coordination into a fixed protocol: the lecturer gets one card with four buttons, and if nobody taps by 15 minutes after start, the class becomes a 15-minute learning module instead of a dead hour.</p>
+
+  <h3>3.1 Main user journey</h3>
+  <figure>
+    <div class="flow">
+      <div class="step bg-paper"><span class="t">H − 2h</span><h4>Push to the lecturer</h4><p>Single-use link, no login, no typing. Students see “Hold commute”.</p></div>
+      <div class="step bg-mint"><span class="t">Confirm / Delay</span><h4>Safe to commute</h4><p>Every radar turns green, or shows +20 min.</p></div>
+      <div class="step bg-sky"><span class="t">Reschedule</span><h4>3 conflict-free slots</h4><p>Komti locks one; all students are notified.</p></div>
+      <div class="step bg-lilac"><span class="t">H + 15m silence</span><h4>Micro-Pause</h4><p>15-min module + quiz; finishing it logs attendance.</p></div>
+    </div>
+    <div class="rail"></div>
+    <figcaption>Figure 1 · One trigger, four outcomes. Each outcome owns one colour on every screen: card, chip, calendar block and notification.</figcaption>
+  </figure>
+
+  <h3>3.2 Value and scope</h3>
+  <table>
+    <tr><th style="width:16%">User</th><th style="width:38%">Value</th><th>Built screens</th></tr>
+    <tr><td><span class="status bg-mint">Student</span></td><td>Knows whether to leave before leaving; turns a cancelled class into learning; avoids unfair absence</td><td>Commute Radar with live tiles and day calendar, Micro-Pause play card, quiz and receipt, leave request, inbox, weekly schedule, profile</td></tr>
+    <tr><td><span class="status bg-lilac">Komti</span></td><td>No more chasing; picks a makeup slot from 3 instead of negotiating</td><td>Class Operations: SLA timers, slot engine with Lock &amp; broadcast, request cards, activity feed</td></tr>
+    <tr><td><span class="status bg-butter">Lecturer</span></td><td>Answers 40 students with one tap, no typing</td><td>Push notification → 1-tap card (dashboard or magic link)</td></tr>
+  </table>
+  <p class="soft small">Out of scope: grading, full LMS replacement, parking and facility reporting (raised in our field notes but outside Cluster 1).</p>
+
+  <h3>3.3 Distinguishing features</h3>
+  <div class="grid2">
+    <div class="card bg-butter"><h4>Zero-chat SLA</h4><p>Four fixed answers and a 15-minute deadline replace open-ended chat; silence has a defined outcome.</p></div>
+    <div class="card bg-sky"><h4>Three slots, not a calendar</h4><p>The engine checks every enrolled student’s timetable, the lecturer’s classes and room capacity, then offers only three options (Hick’s law).</p></div>
+    <div class="card bg-lilac"><h4>Micro-Pause fallback</h4><p>A dropped class becomes a short module whose completion records attendance, so the hour is not lost.</p></div>
+    <div class="card bg-mint"><h4>Built for a glance on the move</h4><p>Status readable in under a second, primary actions in a thumb-reach dock, push in the user’s language, installable on the home screen.</p></div>
+  </div>
+</section>
+
+<!-- ================= 4 ================= -->
+<section class="chapter">
+  <div class="chap-head"><span class="chap-no">04</span><h2>Technical Design</h2></div>
+  <p class="lede">ClassPause runs today as one full-stack Next.js application on PostgreSQL, deployed at classpause.kousozo.tech with a synthetic East Kalimantan campus dataset.</p>
+
+  <h3>4.1 Architecture</h3>
+  <figure>
+    <div class="arch">
+      <div class="col bg-mint"><b>Clients</b>
+        <div class="box"><strong>Installable PWA</strong>Student · Komti · Lecturer views</div>
+        <div class="box"><strong>Magic link</strong>Lecturer card, no login</div>
+        <div class="box"><strong>Service worker</strong>Push, offline page, asset cache</div>
+      </div>
+      <div class="col bg-sky"><b>Next.js server</b>
+        <div class="box"><strong>Server actions + zod</strong>Every input validated; rate limits; signed session cookie</div>
+        <div class="box"><strong>Protocol clock</strong>Every 15 s: create today’s sessions, H−2h prompts, H+15m expiry</div>
+        <div class="box"><strong>Slot engine</strong>Students × lecturer × rooms, ranked by conflicts</div>
+        <div class="box"><strong>Live bus → SSE</strong>Changes pushed to open screens</div>
+      </div>
+      <div class="col bg-lilac"><b>Data &amp; delivery</b>
+        <div class="box"><strong>PostgreSQL</strong>Drizzle ORM, versioned migrations, indexes</div>
+        <div class="box"><strong>Web Push (VAPID)</strong>Per-recipient language</div>
+        <div class="box"><strong>Telegram adapter</strong>Optional lecturer channel</div>
+      </div>
+    </div>
+    <figcaption>Figure 2 · Architecture as deployed on 24 November 2026. One Node process behind nginx with HTTPS; PostgreSQL in its own container.</figcaption>
+  </figure>
+
+  <h3>4.2 Core features and status</h3>
+  <table>
+    <tr><th style="width:24%">Feature</th><th>How it works</th><th style="width:15%">Status</th></tr>
+    <tr><td><b>Server SLA clock</b></td><td>Sessions are created from the weekly timetable; prompts at H−2h; conditional update moves unanswered classes to Micro-Pause at H+15m, so a last-second reply and the expiry cannot both win</td><td><span class="status bg-mint">Live</span></td></tr>
+    <tr><td><b>Lecturer 1-tap card</b></td><td>Single-use token (only its hash is stored), expires at H+15m; same card on the dashboard</td><td><span class="status bg-mint">Live</span></td></tr>
+    <tr><td><b>Slot engine</b></td><td>Next 6 campus days × standard 100-min blocks; lecturer free and a big-enough free room are hard rules; student clashes are scored</td><td><span class="status bg-mint">Live</span></td></tr>
+    <tr><td><b>Commute Radar</b></td><td>Live status tiles, SLA ring, day calendar with a “now” line</td><td><span class="status bg-mint">Live</span></td></tr>
+    <tr><td><b>Micro-Pause</b></td><td>Step module + quiz; server scores it and issues a receipt code</td><td><span class="status bg-mint">Live</span></td></tr>
+    <tr><td><b>Leave requests</b></td><td>Student submits sick or dispensation; komti approves or declines</td><td><span class="status bg-mint">Live</span></td></tr>
+    <tr><td><b>Notifications</b></td><td>Every protocol event goes to the inbox and Web Push, in each recipient’s language; dead subscriptions pruned</td><td><span class="status bg-mint">Live</span></td></tr>
+    <tr><td><b>PWA &amp; languages</b></td><td>Manifest, generated icons, install prompt, offline page; English and Bahasa Indonesia</td><td><span class="status bg-mint">Live</span></td></tr>
+    <tr><td><b>Campus SSO</b></td><td>Persona picker stands in for single sign-on</td><td><span class="status bg-butter">Planned</span></td></tr>
+    <tr><td><b>WhatsApp Business</b></td><td>Second delivery adapter beside Telegram</td><td><span class="status bg-butter">Planned</span></td></tr>
+  </table>
+
+  <h3>4.3 Technologies</h3>
+  <p>Next.js 15 (App Router, server actions) with React 19 and TypeScript; Tailwind CSS 4, Motion and Lucide for the interface; PostgreSQL with Drizzle ORM; zod for validation; Server-Sent Events for live updates; Web Push with VAPID keys; jose for signed sessions; nginx, pm2 and Docker on a single VPS.</p>
+
+  <h3>4.4 Caching and performance</h3>
+  <p>Slow-changing data (classes, rooms, modules) is cached across requests for an hour by tag; the current user and lookups are cached per request; live class state is never cached and reaches clients by push. Queries run in parallel over a connection pool, with indexes on session status and deadline, start time, enrollments and notifications.</p>
+
+  <h3>4.5 Data sources</h3>
+  <table>
+    <tr><th style="width:30%">Data</th><th style="width:40%">Source</th><th>Today</th></tr>
+    <tr><td>Class schedules and rooms</td><td>Campus timetable export or komti entry</td><td>Synthetic seed</td></tr>
+    <tr><td>Student timetables (KRS)</td><td>Student import or komti upload, with consent</td><td>Synthetic seed (40 students)</td></tr>
+    <tr><td>Lecturer responses</td><td>Taps on the 1-tap card</td><td>Real, recorded in PostgreSQL</td></tr>
+    <tr><td>Micro-Pause content</td><td>Lecturer or komti uploads a summary and quiz</td><td>Three sample modules by the team</td></tr>
+  </table>
+</section>
+
+<!-- ================= 5 ================= -->
+<section class="chapter">
+  <div class="chap-head"><span class="chap-no">05</span><h2>Development Plan</h2></div>
+  <p class="lede">The protocol, the three role views and the notification layer are built and deployed; the remaining work is real campus data, sign-in and a second messaging channel.</p>
+
+  <h3>5.1 Milestones</h3>
+  <div class="tl">
+    <div class="it" style="--d:var(--mint-d)"><span class="d">Oct – 15 Nov</span><div class="w">Survey (N = 48) and field observation at UMKT, ITK, Unmul</div></div>
+    <div class="it" style="--d:var(--mint-d)"><span class="d">20 Nov</span><div class="w">Design system and three-role prototype</div></div>
+    <div class="it" style="--d:var(--mint-d)"><span class="d">21 – 24 Nov</span><div class="w">Full stack on PostgreSQL, push, inbox, PWA, EN/ID; deployed</div></div>
+    <div class="it" style="--d:var(--butter-d)"><span class="d">26 Nov</span><div class="w">Usability test with students and komti from three campuses</div></div>
+    <div class="it" style="--d:var(--butter-d)"><span class="d">Early Dec</span><div class="w">Fixes from testing; pilot with one class</div></div>
+    <div class="it" style="--d:var(--lilac-d)"><span class="d">16 Dec 2026</span><div class="w">Final Day build: SSO, WhatsApp adapter, timetable import</div></div>
+  </div>
+
+  <h3>5.2 Current progress (24 November 2026)</h3>
+  <div class="grid2">
+    <div class="card bg-mint"><h4>Done</h4><p>Survey analysis and field notes · design system and redesign · PostgreSQL schema and migrations · server SLA clock · slot engine · magic links · Micro-Pause with receipts · leave requests · SSE live updates · Web Push and inbox · profile, weekly schedule · installable PWA · English and Bahasa Indonesia · HTTPS deployment</p></div>
+    <div class="card bg-butter"><h4>Not done yet</h4><p>Usability test (26 Nov) · campus SSO · WhatsApp Business delivery · import of real campus timetables · push verified on a range of real phones · translated module content</p></div>
+  </div>
+
+  <h3>5.3 Member contributions</h3>
+  <table>
+    <tr><th style="width:28%">Member</th><th>Contribution so far</th><th style="width:28%">Next</th></tr>
+    <tr><td><b>Al-Ghani Desta Setyawan</b><br><span class="soft small">Hacker · Team Leader</span></td><td>Wrote all application code: database, server protocol, slot engine, push, PWA, deployment. Survey design and statistics, abstract, proposal</td><td>SSO, WhatsApp adapter, timetable import; video narration</td></tr>
+    <tr><td><b>Andhika Galih Isya Putra</b><br><span class="soft small">Hipster</span></td><td>UI/UX: design direction, screen flows and visual review of every role view; field research at ITK, alternatives audit</td><td>Usability sessions, UI fixes from findings</td></tr>
+    <tr><td><b>Johann Ariel Givel Filemon Silalahi</b><br><span class="soft small">Hustler</span></td><td>Business: value proposition, adoption path through komti, sustainability and pitch; field research at Unmul, survey data processing</td><td>Pilot partner outreach, pitch on Final Day</td></tr>
+  </table>
+
+  <h3>5.4 Planned Final Day tasks</h3>
+  <ol>
+    <li><b>Campus sign-in.</b> Replace the persona picker with SSO or campus email login.</li>
+    <li><b>WhatsApp Business adapter.</b> Second delivery channel beside push and Telegram, with queue and retry for rate limits.</li>
+    <li><b>Timetable import.</b> Komti uploads the class timetable; students import their own KRS; the slot engine runs on real data.</li>
+  </ol>
+</section>
+
+<!-- ================= 6 ================= -->
+<section class="chapter">
+  <div class="chap-head"><span class="chap-no">06</span><h2>Validation and Impact</h2></div>
+  <p class="lede">The app works end to end, but we have not yet tested it with real users; the first usability test runs on 26 November and its results will replace the plan below.</p>
+
+  <h3>6.1 Validation plan</h3>
+  <table>
+    <tr><th style="width:28%">Test</th><th style="width:20%">Participants</th><th>What we measure</th><th style="width:18%">Pass mark</th></tr>
+    <tr><td>Glance test on the Commute Radar</td><td>9–12 students, three campuses</td><td>Correct go / hold / don’t-commute answer; time to answer</td><td>90% correct within 3 s</td></tr>
+    <tr><td>Komti: lock a makeup slot</td><td>3 komti, one per campus</td><td>Time to broadcast vs. their chat routine</td><td>Under 30 s</td></tr>
+    <tr><td>Lecturer: answer the push card</td><td>2–3 lecturers if available</td><td>Taps and seconds to respond; would they use it</td><td>One tap, under 10 s</td></tr>
+    <tr><td>Micro-Pause completion</td><td>Same students</td><td>Share who finish; usefulness (1–5)</td><td>70% completion</td></tr>
+    <tr><td>Push delivery</td><td>Participants’ own phones</td><td>Notification arrives within a minute, in their language</td><td>90% of devices</td></tr>
+  </table>
+  <div class="note"><b>Results pending:</b> sessions run on 26 November; this table is replaced with measured results before final submission.</div>
+
+  <h3>6.2 Expected benefit</h3>
+  <p>Our survey gives 4.25 incidents per affected student every three months at 52.1 minutes each: about 221 minutes, or 3.7 hours, per student per three months that ClassPause aims to turn into either staying home or a verified 15-minute module. After a pilot we will track wasted commutes avoided, minutes from lecturer prompt to class status, and Micro-Pause completion.</p>
+
+  <h3>6.3 Risks</h3>
+  <table>
+    <tr><th style="width:28%">Risk</th><th style="width:24%">Effect</th><th>Mitigation</th></tr>
+    <tr><td>Push blocked or not supported on a phone</td><td>Lecturer misses the card</td><td>Inbox and Telegram as fallbacks; the H+15m expiry still protects students</td></tr>
+    <tr><td>Lecturers ignore the card</td><td>Too many Micro-Pauses</td><td>Komti can confirm on the lecturer’s behalf; data shows which classes need follow-up</td></tr>
+    <tr><td>No campus timetable data</td><td>Slot engine runs on partial data</td><td>Komti uploads the class timetable; students import their KRS</td></tr>
+    <tr><td>Micro-Pause seen as skipping lectures</td><td>Campus pushback</td><td>Module set by lecturer or komti; counts only for that session, never replaces exams</td></tr>
+    <tr><td>Single-server limits</td><td>Slow at peak hours</td><td>Bus can move to PostgreSQL LISTEN/NOTIFY or Redis to run several processes</td></tr>
+  </table>
+
+  <h3>6.4 Privacy and security</h3>
+  <p>ClassPause stores only what the flow needs: name, student number, class list, timetable slots, attendance receipts and push subscriptions. Timetables are used to find free slots and are never shown to other students. Lecturer links are single-use, stored as hashes and expire at H+15m. Every input is validated on the server, sessions are signed cookies, and demonstrations use synthetic data only.</p>
+
+  <h3>6.5 Sustainability</h3>
+  <p>The first users are class coordinators, who can adopt ClassPause for one class without campus integration. Once several classes use it, we approach the faculty to connect the campus timetable and SIAKAD. Running costs are small: one VPS, PostgreSQL and the messaging APIs; push notifications are free.</p>
+</section>
+
+<!-- ================= 7 ================= -->
+<section class="chapter">
+  <div class="chap-head"><span class="chap-no">07</span><h2>References and Declaration</h2></div>
+
+  <h3>7.1 Third-party resources</h3>
+  <table>
+    <tr><th style="width:44%">Resource</th><th>Use</th><th style="width:20%">License</th></tr>
+    <tr><td>Next.js, React</td><td>Web app framework</td><td>MIT</td></tr>
+    <tr><td>Tailwind CSS, Motion, Lucide</td><td>Styling, animation, icons</td><td>MIT / MIT / ISC</td></tr>
+    <tr><td>PostgreSQL, Drizzle ORM, postgres.js</td><td>Database and access</td><td>PostgreSQL / Apache-2.0 / Unlicense</td></tr>
+    <tr><td>zod, jose, web-push</td><td>Validation, sessions, push</td><td>MIT / MIT / MPL-2.0</td></tr>
+    <tr><td>Outfit, Inter, JetBrains Mono (Google Fonts)</td><td>Typography</td><td>SIL Open Font License</td></tr>
+  </table>
+
+  <h3>7.2 Material AI assistance</h3>
+  <table>
+    <tr><th style="width:22%">Tool</th><th>What it did</th><th style="width:36%">What the team did</th></tr>
+    <tr><td>Claude Code (Anthropic)</td><td>Semifinal: generated application code, the design system and deployment scripts, and drafted this proposal, the pitch deck and the video script from our survey data and notes</td><td>Wrote the requirements and prompts; reviewed, tested and corrected the output; owns all decisions</td></tr>
+    <tr><td>Claude Sonnet 5.5 (Anthropic)</td><td>Helped draft administrative documents (survey report formatting, abstract wording)</td><td>Ran the survey, collected the data, checked every figure</td></tr>
+  </table>
+
+  <h3>7.3 References</h3>
+  <ol class="refs">
+    <li>Team “Bug itu fitur” (2026). <i>Kaltim Campus Service Survey and Cross-Campus Problem Discovery Dataset</i> (N = 48; UMKT, Unmul, ITK). Universitas Muhammadiyah Kalimantan Timur, Samarinda.</li>
+    <li>Hick, W. E. (1952). On the rate of gain of information. <i>Quarterly Journal of Experimental Psychology</i>, 4(1), 11–26.</li>
+    <li>Fitts, P. M. (1954). The information capacity of the human motor system in controlling the amplitude of movement. <i>Journal of Experimental Psychology</i>, 47(6), 381–391.</li>
+    <li>Zeigarnik, B. (1927). Über das Behalten von erledigten und unerledigten Handlungen. <i>Psychologische Forschung</i>, 9, 1–85.</li>
+    <li>GDGoC ITB (2026). <i>STACK 2026 Handbook</i>.</li>
+  </ol>
+
+  <h3>7.4 Declaration of Originality</h3>
+  <p>The signed declaration is attached as the appendix on the next page.</p>
+</section>
+
+<!-- ================= APPENDIX: signed declaration (outside the 10-page limit) ================= -->
+<section class="chapter newpage">
+  <div class="chap-head"><span class="chap-no">A</span><h2>Declaration Of Originality</h2></div>
+  <p style="text-align:justify;font-size:10.5pt;line-height:1.6">I, the undersigned, as the Team Leader of Bug itu fitur, hereby declare on behalf of all registered team members that the project entitled &quot;ClassPause: Autonomous Class Coordination Protocol and Micro-Learning Continuity Hub&quot;, submitted to STACK 2026 organized by GDGoC ITB, is our original work, developed specifically for this competition. We affirm that this project is not copied from, adapted from, or repackaged from any existing project or previous competition submission. All substantive aspects of the proposed solution and its development have been carried out by the registered team members. Any third-party resources, including frameworks, libraries, APIs, datasets, or general-purpose templates, have been used with appropriate permissions and acknowledgments. Furthermore, any material AI assistance has been properly disclosed in the proposal and product README, including the tools used and their respective roles. We also confirm that all information regarding research, testing, development progress, and individual contributions is presented accurately and truthfully.</p>
+  <p style="margin-top:8mm;font-size:10.5pt">Samarinda, 30 November 2026</p>
+  <p style="font-size:10.5pt">Team Leader,</p>
+  <div style="height:26mm"></div>
+  <p style="font-size:10.5pt;margin:0">Al-Ghani Desta Setyawan</p>
+  <p style="font-size:10.5pt">[Student ID] – Universitas Muhammadiyah Kalimantan Timur</p>
+</section>
+
+</body>
+</html>
