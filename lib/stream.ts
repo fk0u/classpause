@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { db, schema as s } from "@/db";
 import { myCohorts, courseRole } from "./accounts";
 import { notifyUsers } from "./notify";
+import { teaches } from "./teach";
 import { publish } from "./bus";
 
 type R = { ok: true } | { ok: false; error: string };
@@ -20,7 +21,7 @@ export async function allowedKinds(userId: string, cohortId: string, classId: st
   } else if (c.komtiId === userId) return ["announcement", "info", "discussion"];
   const [m] = await db.select().from(s.cohortMembers).where(and(eq(s.cohortMembers.cohortId, cohortId), eq(s.cohortMembers.userId, userId))).limit(1);
   if (m) return ["discussion"];
-  const [teach] = await db.select({ id: s.classes.id }).from(s.classes).where(and(eq(s.classes.cohortId, cohortId), eq(s.classes.lecturerId, userId))).limit(1);
+  const [teach] = await db.select({ id: s.classes.id }).from(s.classes).where(and(eq(s.classes.cohortId, cohortId), teaches(userId))).limit(1);
   return teach ? ["discussion"] : [];
 }
 
@@ -30,9 +31,11 @@ export async function feed(userId: string, opts: { kind?: PostKind; classId?: st
   const ids = cohorts.map((c) => c.id);
   const courses = await db.select({ id: s.classes.id, code: s.classes.code, name: s.classes.name, cohortId: s.classes.cohortId, sipenId: s.classes.sipenId, lecturerId: s.classes.lecturerId })
     .from(s.classes).where(inArray(s.classes.cohortId, ids)).orderBy(asc(s.classes.code));
+  const asdos = courses.length ? await db.select().from(s.courseAssistants).where(inArray(s.courseAssistants.classId, courses.map((k) => k.id))) : [];
+  const teachesK = (k: { id: string; lecturerId: string } | undefined | null, u: string) => Boolean(k && (k.lecturerId === u || asdos.some((a) => a.classId === k.id && a.userId === u)));
   const member = new Set((await db.select({ id: s.cohortMembers.cohortId }).from(s.cohortMembers).where(eq(s.cohortMembers.userId, userId))).map((r) => r.id));
   // Lecturers who aren't members see cohort-wide posts and their own courses only.
-  const visibleCourse = courses.filter((k) => member.has(k.cohortId!) || k.lecturerId === userId).map((k) => k.id);
+  const visibleCourse = courses.filter((k) => member.has(k.cohortId!) || teachesK(k, userId)).map((k) => k.id);
   const scope = or(
     and(inArray(s.posts.cohortId, ids), isNull(s.posts.classId)),
     visibleCourse.length ? inArray(s.posts.classId, visibleCourse) : sql`false`,
@@ -50,6 +53,7 @@ export async function feed(userId: string, opts: { kind?: PostKind; classId?: st
     if (komtiOf.get(cohortId) === authorId) return "komti";
     const k = classId ? courses.find((x) => x.id === classId) : null;
     if (k?.lecturerId === authorId || courses.some((x) => x.cohortId === cohortId && x.lecturerId === authorId)) return "lecturer";
+    if (teachesK(k, authorId) || courses.some((x) => x.cohortId === cohortId && teachesK(x, authorId))) return "assistant";
     if (k?.sipenId === authorId) return "sipen";
     return null;
   };
@@ -67,7 +71,7 @@ export async function feed(userId: string, opts: { kind?: PostKind; classId?: st
       id: p.id, kind: p.kind, body: p.body, pinned: p.pinned, createdAt: p.createdAt, cohortId: p.cohortId, classId: p.classId,
       author: { id: author.id, name: author.name, badge: badge(author.id, p.cohortId, p.classId) },
       mine: author.id === userId,
-      canModerate: komtiOf.get(p.cohortId) === userId || (p.classId ? courses.find((x) => x.id === p.classId)?.lecturerId === userId : false),
+      canModerate: komtiOf.get(p.cohortId) === userId || (p.classId ? teachesK(courses.find((x) => x.id === p.classId), userId) : false),
       comments: comments.filter((c) => c.c.postId === p.id).map((c) => ({ id: c.c.id, body: c.c.body, name: c.name, createdAt: c.c.createdAt, mine: c.c.authorId === userId })),
     })),
     can,
@@ -96,6 +100,9 @@ async function audienceOf(cohortId: string, classId: string | null) {
     ? await db.select({ id: s.enrollments.userId }).from(s.enrollments).where(eq(s.enrollments.classId, classId))
     : await db.select({ id: s.cohortMembers.userId }).from(s.cohortMembers).where(eq(s.cohortMembers.cohortId, cohortId));
   const lecturers = await db.select({ id: s.classes.lecturerId }).from(s.classes).where(classId ? eq(s.classes.id, classId) : eq(s.classes.cohortId, cohortId));
+  const asdos = await db.select({ id: s.courseAssistants.userId }).from(s.courseAssistants).innerJoin(s.classes, eq(s.classes.id, s.courseAssistants.classId))
+    .where(classId ? eq(s.classes.id, classId) : eq(s.classes.cohortId, cohortId));
+  lecturers.push(...asdos);
   return [...new Set([...members, ...lecturers].map((r) => r.id))];
 }
 
@@ -121,7 +128,8 @@ export async function comment(userId: string, postId: string, body: string): Pro
 async function moderator(userId: string, p: typeof s.posts.$inferSelect) {
   const [c] = await db.select({ komti: s.cohorts.komtiId }).from(s.cohorts).where(eq(s.cohorts.id, p.cohortId));
   if (c?.komti === userId) return true;
-  return p.classId ? (await courseRole(p.classId, userId)) === "lecturer" : false;
+  const r = p.classId ? await courseRole(p.classId, userId) : null;
+  return r === "lecturer" || r === "assistant";
 }
 
 export async function pinPost(userId: string, postId: string): Promise<R> {

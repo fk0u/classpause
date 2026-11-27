@@ -5,6 +5,7 @@ import { publish } from "./bus";
 import { notifyUsers, rosterOf, fmt } from "./notify";
 import { proposeSlots } from "./slot-engine";
 import { atLocal, localParts, startOfLocalDay, fmtRange, fmtDay } from "./time";
+import { teaches, teacherIds } from "./teach";
 
 /* ======================= Attendance ======================= */
 
@@ -60,9 +61,9 @@ export async function attachProof(permissionId: string, userId: string, path: st
   const [p] = await db.update(s.permissions).set({ proofPath: path, proofName: name, proofAt: new Date() })
     .where(and(eq(s.permissions.id, permissionId), eq(s.permissions.userId, userId), inArray(s.permissions.status, ["pending", "approved"]))).returning();
   if (!p) return { ok: false as const, error: "This request can no longer take a letter." };
-  const [k] = await db.select({ lecturerId: s.classes.lecturerId, name: s.classes.name }).from(s.sessions)
+  const [k] = await db.select({ id: s.classes.id, name: s.classes.name }).from(s.sessions)
     .innerJoin(s.classes, eq(s.classes.id, s.sessions.classId)).where(eq(s.sessions.id, p.sessionId));
-  await notifyUsers([k.lecturerId], "proof", (t) => ({ title: t.notif.proof.title, body: fmt(t.notif.proof.body, { course: k.name }), url: "/lecturer" }));
+  await notifyUsers(await teacherIds(k.id), "proof", (t) => ({ title: t.notif.proof.title, body: fmt(t.notif.proof.body, { course: k.name }), url: "/lecturer" }));
   publish({ type: "permission", message: "proof", tone: "info" });
   return { ok: true as const };
 }
@@ -71,7 +72,7 @@ export async function attachProof(permissionId: string, userId: string, path: st
 
 export async function requestChange(sessionId: string, lecturerId: string, reason: string) {
   const [ses] = await db.select({ ses: s.sessions, k: s.classes }).from(s.sessions).innerJoin(s.classes, eq(s.classes.id, s.sessions.classId))
-    .where(and(eq(s.sessions.id, sessionId), eq(s.classes.lecturerId, lecturerId))).limit(1);
+    .where(and(eq(s.sessions.id, sessionId), teaches(lecturerId))).limit(1);
   if (!ses) return { ok: false as const, error: "Not your class" };
   if (!LIVE.includes(ses.ses.status)) return { ok: false as const, error: "This class already has an answer." };
   const open = await db.select({ id: s.changeRequests.id }).from(s.changeRequests).where(and(eq(s.changeRequests.sessionId, sessionId), eq(s.changeRequests.status, "pending")));
@@ -131,7 +132,7 @@ async function lecturerReminders(now: Date) {
     if (await isHoliday(r.ses.startsAt)) continue;
     await db.update(s.sessions).set(h1 ? { remindedH1At: now } : { remindedH0At: now }).where(eq(s.sessions.id, r.ses.id));
     const key = h1 ? "remindH1" : "remindH0";
-    await notifyUsers([r.k.lecturerId], key, (t) => ({
+    await notifyUsers(await teacherIds(r.k.id), key, (t) => ({
       title: t.notif[key].title,
       body: fmt(t.notif[key].body, { course: r.k.name, time: fmtRange(r.ses.startsAt, r.ses.endsAt), room: r.room }),
       url: "/lecturer",

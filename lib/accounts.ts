@@ -4,6 +4,7 @@ import { revalidateTag } from "next/cache";
 import { and, asc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { db, schema as s } from "@/db";
 import type { User } from "@/db/schema";
+import { teaches } from "./teach";
 
 const scrypt = promisify(_scrypt) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
 type R<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
@@ -59,7 +60,7 @@ export async function login(email: string, password: string): Promise<R<User>> {
 
 export async function myCohorts(userId: string) {
   const member = db.select({ id: s.cohortMembers.cohortId }).from(s.cohortMembers).where(eq(s.cohortMembers.userId, userId));
-  const teaching = db.select({ id: s.classes.cohortId }).from(s.classes).where(eq(s.classes.lecturerId, userId));
+  const teaching = db.select({ id: s.classes.cohortId }).from(s.classes).where(teaches(userId));
   const [a, b] = await Promise.all([member, teaching]);
   const ids = [...new Set([...a, ...b].map((r) => r.id).filter(Boolean) as string[])];
   return ids.length ? db.select().from(s.cohorts).where(inArray(s.cohorts.id, ids)).orderBy(asc(s.cohorts.createdAt)) : [];
@@ -238,6 +239,8 @@ export async function manageView(userId: string) {
       .where(and(eq(s.classes.cohortId, c.id), isKomti ? undefined : eq(s.classes.sipenId, userId))).orderBy(asc(s.classes.code));
     if (!isKomti && !courses.length) continue;
     const ids = courses.map((x) => x.k.id);
+    const assistants = ids.length ? await db.select({ classId: s.courseAssistants.classId, id: s.users.id, name: s.users.name, email: s.users.email, claimCode: s.users.claimCode })
+      .from(s.courseAssistants).innerJoin(s.users, eq(s.users.id, s.courseAssistants.userId)).where(inArray(s.courseAssistants.classId, ids)).orderBy(asc(s.users.name)) : [];
     const [meetings, members] = await Promise.all([
       ids.length ? db.select({ m: s.meetings, room: s.rooms.code }).from(s.meetings).innerJoin(s.rooms, eq(s.rooms.id, s.meetings.roomId)).where(inArray(s.meetings.classId, ids)).orderBy(asc(s.meetings.day), asc(s.meetings.startMin)) : [],
       db.select({ id: s.users.id, name: s.users.name, studentNo: s.users.studentNo }).from(s.cohortMembers).innerJoin(s.users, eq(s.users.id, s.cohortMembers.userId))
@@ -250,6 +253,7 @@ export async function manageView(userId: string) {
       courses: courses.map(({ k, lec }) => ({
         id: k.id, code: k.code, name: k.name, credits: k.credits, sipenId: k.sipenId,
         lecturer: { name: lec.name, email: isPendingEmail(lec.email) ? "" : lec.email, claimCode: isKomti ? lec.claimCode : null },
+        assistants: assistants.filter((x) => x.classId === k.id).map((x) => ({ id: x.id, name: x.name, email: isPendingEmail(x.email) ? "" : x.email, claimCode: isKomti ? x.claimCode : null })),
         meetings: meetings.filter((m) => m.m.classId === k.id).map((m) => ({ id: m.m.id, day: m.m.day, startMin: m.m.startMin, endMin: m.m.endMin, room: m.room })),
       })),
     });
@@ -266,7 +270,11 @@ export async function courseRole(classId: string, userId: string) {
   const [k] = await db.select({ komti: s.cohorts.komtiId, sipen: s.classes.sipenId, lecturer: s.classes.lecturerId, oldKomti: s.classes.komtiId })
     .from(s.classes).leftJoin(s.cohorts, eq(s.cohorts.id, s.classes.cohortId)).where(eq(s.classes.id, classId)).limit(1);
   if (!k) return null;
-  return k.lecturer === userId ? "lecturer" : (k.komti ?? k.oldKomti) === userId ? "komti" : k.sipen === userId ? "sipen" : null;
+  if (k.lecturer === userId) return "lecturer";
+  if ((k.komti ?? k.oldKomti) === userId) return "komti";
+  if (k.sipen === userId) return "sipen";
+  const [a] = await db.select().from(s.courseAssistants).where(and(eq(s.courseAssistants.classId, classId), eq(s.courseAssistants.userId, userId))).limit(1);
+  return a ? "assistant" : null;
 }
 
 
@@ -368,4 +376,33 @@ export async function memberships(userId: string) {
     members: sql<number>`(select count(*) from cohort_members m where m.cohort_id = ${s.cohorts.id})` })
     .from(s.cohortMembers).innerJoin(s.cohorts, eq(s.cohorts.id, s.cohortMembers.cohortId))
     .where(eq(s.cohortMembers.userId, userId)).orderBy(asc(s.cohorts.name));
+}
+
+/* ---------- Asisten dosen ---------- */
+
+export async function addAssistant(classId: string, komti: string, name: string, email?: string | null): Promise<R> {
+  const [k] = await db.select({ id: s.classes.id, lecturerId: s.classes.lecturerId }).from(s.classes).innerJoin(s.cohorts, eq(s.cohorts.id, s.classes.cohortId))
+    .where(and(eq(s.classes.id, classId), eq(s.cohorts.komtiId, komti))).limit(1);
+  if (!k) return no("Komti of this class group only");
+  const lec = await upsertLecturer(name, email);
+  if (!lec.ok) return lec;
+  if (lec.data === k.lecturerId) return no("This person is already the lecturer of this course.");
+  await db.insert(s.courseAssistants).values({ classId, userId: lec.data! }).onConflictDoNothing();
+  revalidateTag("catalog");
+  return { ok: true };
+}
+
+export async function removeAssistant(classId: string, komti: string, userId: string): Promise<R> {
+  const [k] = await db.select({ id: s.classes.id }).from(s.classes).innerJoin(s.cohorts, eq(s.cohorts.id, s.classes.cohortId))
+    .where(and(eq(s.classes.id, classId), eq(s.cohorts.komtiId, komti))).limit(1);
+  if (!k) return no("Komti of this class group only");
+  await db.delete(s.courseAssistants).where(and(eq(s.courseAssistants.classId, classId), eq(s.courseAssistants.userId, userId)));
+  // An asdos the komti created and nobody claimed has no other use: drop the placeholder account.
+  const [u] = await db.select().from(s.users).where(eq(s.users.id, userId)).limit(1);
+  if (u && !u.passwordHash && !u.isDemo) {
+    const [still] = await db.select({ id: s.classes.id }).from(s.classes).where(teaches(userId)).limit(1);
+    if (!still) await db.delete(s.users).where(eq(s.users.id, userId));
+  }
+  revalidateTag("catalog");
+  return { ok: true };
 }

@@ -64,6 +64,13 @@ export const classes = pgTable("classes", {
   credits: smallint("credits").notNull().default(3),
 }, (t) => [uniqueIndex("classes_cohort_code_uq").on(t.cohortId, t.code)]);
 
+/** Asisten dosen: same powers as the course's lecturer, for that course only. */
+export const courseAssistants = pgTable("course_assistants", {
+  classId: uuid("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.classId, t.userId] }), index("course_assistants_user_idx").on(t.userId)]);
+
 export const enrollments = pgTable("enrollments", {
   classId: uuid("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

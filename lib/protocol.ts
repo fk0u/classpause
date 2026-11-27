@@ -10,6 +10,7 @@ import { notifyUsers, rosterOf, fmt } from "./notify";
 import { scoreQuiz } from "./quiz";
 import { campusTick, setAttendance, isHoliday, PROOF_WINDOW_H } from "./campus";
 import { atLocal, localParts, startOfLocalDay, fmtRange, fmtDay } from "./time";
+import { teacherIds } from "./teach";
 
 export const PROMPT_LEAD_MIN = 120; // H-2h
 export const SLA_GRACE_MIN = 15;    // H+15m
@@ -67,7 +68,7 @@ export async function promptSession(sessionId: string, now = new Date()) {
   await logEvent(sessionId, "prompt", `1-tap card sent to ${row.lecturer.name}`);
   publish({ type: "prompt", kind: "prompt", vars: { course: row.klass.name }, sessionId, classId: row.klass.id, tone: "info", message: `H-2h: confirmation request sent to ${row.lecturer.name}` });
   const n = (await rosterOf(row.klass.id)).length;
-  await notifyUsers([row.lecturer.id], "prompt", (t) => ({
+  await notifyUsers(await teacherIds(row.klass.id), "prompt", (t) => ({
     title: t.notif.prompt.title,
     body: fmt(t.notif.prompt.body, { course: row.klass.name, time: fmtRange(row.ses.startsAt, row.ses.endsAt), n }),
     url: `/l/${token}`,
@@ -212,7 +213,7 @@ export async function requestPermission(sessionId: string, userId: string, type:
   const [who] = await db.select({ name: s.users.name }).from(s.users).where(eq(s.users.id, userId));
   const msg = (t: Parameters<Parameters<typeof notifyUsers>[2]>[0], url: string) => ({ title: t.notif.request.title, body: fmt(t.notif.request.body, { name: who.name, course: k.name }), url });
   // Straight to the lecturer, who decides; the komti gets a copy for visibility only.
-  await notifyUsers([k.lecturerId], "request", (t) => msg(t, "/lecturer"));
+  await notifyUsers(await teacherIds(enr.classId), "request", (t) => msg(t, "/lecturer"));
   if (k.komtiId) await notifyUsers([k.komtiId], "request", (t) => msg(t, "/komti"));
   return { ok: true as const };
 }

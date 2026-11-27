@@ -13,6 +13,7 @@ import {
   lecturerActionSchema, magicActionSchema, lockSlotSchema, permissionSchema,
   decidePermissionSchema, quizSubmitSchema, signInSchema, uuid, type ActionResult,
 } from "@/lib/validation";
+import { teaches } from "@/lib/teach";
 
 const fail = (error: string) => ({ ok: false as const, error });
 const zodFail = (e: z.ZodError) => fail(e.issues[0]?.message ?? "Invalid input");
@@ -43,7 +44,7 @@ export async function lecturerAction(input: unknown): Promise<ActionResult> {
   if (!p.success) return zodFail(p.error);
   const [own] = await db.select({ id: s.sessions.id }).from(s.sessions)
     .innerJoin(s.classes, eq(s.classes.id, s.sessions.classId))
-    .where(and(eq(s.sessions.id, p.data.sessionId), eq(s.classes.lecturerId, u.id))).limit(1);
+    .where(and(eq(s.sessions.id, p.data.sessionId), teaches(u.id))).limit(1);
   if (!own) return fail("Not your class");
   const r = await P.respond(p.data.sessionId, p.data.action, u.id);
   return r.ok ? { ok: true } : r;
@@ -94,7 +95,7 @@ export async function decidePermissionAction(input: unknown): Promise<ActionResu
   if (!u || u.role !== "lecturer") return fail("Lecturer of this class only");
   const [own] = await db.select({ id: s.sessions.id }).from(s.sessions)
     .innerJoin(s.classes, eq(s.classes.id, s.sessions.classId))
-    .where(and(eq(s.sessions.id, perm.sessionId), eq(s.classes.lecturerId, u.id))).limit(1);
+    .where(and(eq(s.sessions.id, perm.sessionId), teaches(u.id))).limit(1);
   if (!own) return fail("Lecturer of this class only");
   const r = await P.decidePermission(p.data.permissionId, p.data.decision, u.id);
   return r.ok ? { ok: true } : r;

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Crown, Plus, RefreshCw, Trash2, UserRoundCog, X, Pencil, Loader2, UserMinus } from "lucide-react";
+import { Check, Copy, Crown, Plus, RefreshCw, Trash2, UserRoundCog, X, Pencil, Loader2, UserMinus, GraduationCap } from "lucide-react";
 import type { manageView } from "@/lib/accounts";
 import * as act from "@/app/account-actions";
 import { Field, Submit, FormError } from "@/components/form-bits";
@@ -197,6 +197,8 @@ function CourseCard({ c, g, me, origin }: { c: Course; g: Group; me: string; ori
         </form>
       )}
 
+      {(g.isKomti || c.assistants.length > 0) && <Assistants c={c} canEdit={g.isKomti} origin={origin} />}
+
       <div className="mt-4">
         <p className="flex items-center gap-1.5 text-sm font-semibold"><UserRoundCog size={15} /> {g.isKomti ? t.manage.sipen : t.manage.transferSipen}</p>
         <select value={c.sipenId ?? ""} disabled={busy} aria-label={t.manage.sipen}
@@ -247,5 +249,53 @@ function MeetingForm({ classId }: { classId: string }) {
       </button>
       {err && <div className="col-span-full"><FormError msg={err} /></div>}
     </form>
+  );
+}
+
+function Assistants({ c, canEdit, origin }: { c: Course; canEdit: boolean; origin: string }) {
+  const t = useT();
+  const { busy, run } = useRun();
+  const [open, setOpen] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  return (
+    <div className="mt-4">
+      <div className="flex items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-sm font-semibold"><GraduationCap size={15} /> {t.manage.assistants}</p>
+        {canEdit && !open && <button onClick={() => setOpen(true)} className="flex min-h-9 items-center gap-1 rounded-full bg-paper px-3 text-xs font-semibold"><Plus size={14} /> {t.manage.addAssistant}</button>}
+      </div>
+      {canEdit && c.assistants.length === 0 && !open && <p className="mt-1 text-xs text-ink/50">{t.manage.assistantsLead}</p>}
+      <ul className="mt-1 space-y-1.5">
+        {c.assistants.map((a) => (
+          <li key={a.id} className="rounded-2xl bg-paper px-3 py-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate"><b>{a.name}</b>{a.email ? <span className="text-ink/50"> · {a.email}</span> : null}</span>
+              {canEdit && <button disabled={busy} aria-label={t.manage.remove} onClick={() => { if (confirm(`${t.manage.remove} ${a.name}?`)) run(() => act.removeAssistantAction({ classId: c.id, userId: a.id })); }}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white"><X size={14} /></button>}
+            </div>
+            {a.claimCode && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <span className="min-w-0 break-all text-xs text-ink/60">{fmt(t.manage.assistantCode, { url: `${origin}/register?claim=${a.claimCode}` })}</span>
+                <CopyBtn text={`${origin}/register?claim=${a.claimCode}`} label={t.manage.copy} />
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      {canEdit && open && (
+        <form className="mt-2 grid gap-2 rounded-2xl bg-sky p-3" onChange={() => setErr(null)} onSubmit={(e) => {
+          e.preventDefault();
+          const f = Object.fromEntries(new FormData(e.currentTarget));
+          run(async () => { const r = await act.addAssistantAction({ ...f, classId: c.id }); if (!r.ok) { setErr(tr(t, r.error!)); return; } setOpen(false); return r; });
+        }}>
+          <Field label={t.manage.assistantName} name="name" required minLength={2} className="bg-white" />
+          <Field label={t.manage.lecturerEmail} hint={t.auth.optional} name="email" type="email" className="bg-white" />
+          <FormError msg={err} />
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setOpen(false)} className="flex min-h-12 items-center rounded-full bg-white px-4 font-semibold"><X size={16} /></button>
+            <Submit busy={busy}>{t.manage.addAssistant}</Submit>
+          </div>
+        </form>
+      )}
+    </div>
   );
 }

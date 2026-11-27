@@ -7,7 +7,7 @@ const en = {
     back: "Back", next: "Next", cancel: "Cancel", save: "Save", today: "Today", noClasses: "No classes today. Enjoy the free day 🌴",
     nothingYet: "Nothing yet.", seeAll: "See all", minutes: "min",
   },
-  roles: { student: "Student", komti: "Komti", lecturer: "Lecturer", sipen: "SiPen" },
+  roles: { student: "Student", komti: "Komti", lecturer: "Lecturer", sipen: "SiPen", assistant: "Asdos" },
   nav: { radar: "Radar", ops: "Class Ops", classes: "My Classes", schedule: "Schedule", inbox: "Inbox", profile: "Profile", design: "Design", rooms: "Rooms", stream: "Stream", manage: "Manage", settings: "Settings" },
   status: {
     scheduled: { label: "Scheduled", advice: "Lecturer gets a 1-tap card 2 hours before." },
@@ -126,6 +126,7 @@ const en = {
     transferKomti: "Hand over komti", transferTo: "New komti", transferWarn: "You will become a regular member. This can only be undone by the new komti.",
     transferSipen: "Hand over SiPen", saved: "Saved", remove: "Remove", confirmRemove: "Remove this course with all its sessions and records?", group: "Class group", empty: "No courses yet. Add the first one.",
     sipenOnly: "You are SiPen of these courses. You can hand the role to another member.",
+    assistants: "Teaching assistants (asdos)", addAssistant: "Add asdos", assistantName: "Asdos name", assistantsLead: "Asdos get the lecturer’s tools for this course: the 1-tap class card, leave requests, attendance and announcements.", assistantCode: "Not signed up yet. Send: {url}",
   },
   stream: {
     title: "Class stream", lead: "Announcements, discussion and info for your class group and each course, in one feed.",
@@ -161,7 +162,7 @@ const id: DeepString<Dict> = {
     back: "Kembali", next: "Lanjut", cancel: "Batal", save: "Simpan", today: "Hari ini", noClasses: "Tidak ada kelas hari ini. Nikmati harimu 🌴",
     nothingYet: "Belum ada apa-apa.", seeAll: "Lihat semua", minutes: "mnt",
   },
-  roles: { student: "Mahasiswa", komti: "Komti", lecturer: "Dosen", sipen: "SiPen" },
+  roles: { student: "Mahasiswa", komti: "Komti", lecturer: "Dosen", sipen: "SiPen", assistant: "Asdos" },
   nav: { radar: "Radar", ops: "Operasi Kelas", classes: "Kelas Saya", schedule: "Jadwal", inbox: "Kotak Masuk", profile: "Profil", design: "Desain", rooms: "Ruang", stream: "Stream", manage: "Kelola", settings: "Pengaturan" },
   status: {
     scheduled: { label: "Terjadwal", advice: "Dosen menerima kartu 1-tap 2 jam sebelumnya." },
@@ -280,6 +281,7 @@ const id: DeepString<Dict> = {
     transferKomti: "Serahkan komti", transferTo: "Komti baru", transferWarn: "Kamu akan menjadi anggota biasa. Hanya komti baru yang bisa mengembalikannya.",
     transferSipen: "Serahkan SiPen", saved: "Tersimpan", remove: "Hapus", confirmRemove: "Hapus mata kuliah ini beserta semua sesi dan catatannya?", group: "Kelas", empty: "Belum ada mata kuliah. Tambahkan yang pertama.",
     sipenOnly: "Kamu SiPen untuk mata kuliah ini. Kamu bisa menyerahkan peran ini ke anggota lain.",
+    assistants: "Asisten dosen (asdos)", addAssistant: "Tambah asdos", assistantName: "Nama asdos", assistantsLead: "Asdos mendapat alat dosen untuk mata kuliah ini: kartu konfirmasi 1-tap, pengajuan izin, presensi, dan pengumuman.", assistantCode: "Belum mendaftar. Kirimkan: {url}",
   },
   stream: {
     title: "Stream kelas", lead: "Pengumuman, diskusi, dan info untuk kelas dan setiap mata kuliah, dalam satu feed.",
@@ -304,6 +306,7 @@ const id: DeepString<Dict> = {
     "Demo accounts can't be changed. Create your own account to try this.": "Akun demo tidak bisa diubah. Buat akun sendiri untuk mencobanya.",
     "Enter your current password to change your email.": "Masukkan kata sandi sekarang untuk mengganti email.",
     "Your current password is wrong.": "Kata sandi sekarang salah.",
+    "This person is already the lecturer of this course.": "Orang ini sudah menjadi dosen mata kuliah ini.",
     "Hand over komti first, or delete the class group.": "Serahkan komti dulu, atau hapus kelasnya.",
     "Type the class group name exactly to confirm.": "Ketik nama kelas persis untuk konfirmasi.",
     "Ask the komti to move your courses to another lecturer first.": "Minta komti memindahkan mata kuliah Anda ke dosen lain dulu.",

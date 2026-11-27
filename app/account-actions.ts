@@ -213,3 +213,15 @@ export async function deleteAccountAction(input: unknown) {
   await signOut();
   redirect("/login");
 }
+
+export async function addAssistantAction(input: unknown) {
+  const p = z.object({ classId: uuid, name: z.string().trim().min(2, "Enter the lecturer's name").max(80), email: z.union([z.literal(""), email]).optional() }).safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  return done(await A.addAssistant(p.data.classId, (await me()).id, p.data.name, p.data.email));
+}
+
+export async function removeAssistantAction(input: unknown) {
+  const p = z.object({ classId: uuid, userId: uuid }).safeParse(input);
+  if (!p.success) return fail("Bad request");
+  return done(await A.removeAssistant(p.data.classId, (await me()).id, p.data.userId));
+}

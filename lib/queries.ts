@@ -9,19 +9,20 @@ import { meetingNumbers, recentChangeRequests } from "./campus";
 /* ---------- Catalog: slow-changing, cached across requests (tag "catalog") ---------- */
 
 export const getCatalog = unstable_cache(async () => {
-  const [classes, rooms, modules, roster] = await Promise.all([
+  const [classes, rooms, modules, roster, assistants] = await Promise.all([
     db.select({ id: s.classes.id, code: s.classes.code, name: s.classes.name, section: s.classes.section, lecturerId: s.classes.lecturerId, komtiId: s.classes.komtiId, lecturerName: s.users.name })
       .from(s.classes).innerJoin(s.users, eq(s.users.id, s.classes.lecturerId)),
     db.select().from(s.rooms),
     db.select().from(s.microModules),
     db.select({ classId: s.enrollments.classId, n: count() }).from(s.enrollments).groupBy(s.enrollments.classId),
+    db.select().from(s.courseAssistants),
   ]);
   return {
-    classes: Object.fromEntries(classes.map((c) => [c.id, { ...c, enrolled: roster.find((r) => r.classId === c.id)?.n ?? 0 }])),
+    classes: Object.fromEntries(classes.map((c) => [c.id, { ...c, enrolled: roster.find((r) => r.classId === c.id)?.n ?? 0, assistantIds: assistants.filter((a) => a.classId === c.id).map((a) => a.userId) }])),
     rooms: Object.fromEntries(rooms.map((r) => [r.id, r])),
     modules: Object.fromEntries(modules.map((m) => [m.classId, m])),
   };
-}, ["catalog-v1"], { tags: ["catalog"], revalidate: 3600 });
+}, ["catalog-v2"], { tags: ["catalog"], revalidate: 3600 });
 
 export const getPersonas = unstable_cache(async () =>
   db.select({ id: s.users.id, name: s.users.name, role: s.users.role, studentNo: s.users.studentNo }).from(s.users)
@@ -108,7 +109,7 @@ export async function getKomtiView(userId: string) {
 
 export async function getLecturerView(userId: string) {
   const catalog = await getCatalog();
-  const classIds = Object.values(catalog.classes).filter((c) => c.lecturerId === userId).map((c) => c.id);
+  const classIds = Object.values(catalog.classes).filter((c) => c.lecturerId === userId || c.assistantIds.includes(userId)).map((c) => c.id);
   const sessions = await getTodaySessions(classIds);
   const ids = sessions.map((x) => x.id);
   const perms = ids.length ? await db.select({ p: s.permissions, name: s.users.name })
@@ -155,7 +156,7 @@ export async function getProfile(userId: string) {
       .where(eq(s.attendanceReceipts.userId, userId)).orderBy(desc(s.attendanceReceipts.createdAt)).limit(20),
     db.select({ n: count() }).from(s.permissions).where(eq(s.permissions.userId, userId)),
   ]);
-  const teaching = Object.values(catalog.classes).filter((c) => c.lecturerId === userId).length;
+  const teaching = Object.values(catalog.classes).filter((c) => c.lecturerId === userId || c.assistantIds.includes(userId)).length;
   return {
     classes: classIds.length || teaching,
     requests: perms[0]?.n ?? 0,
@@ -166,7 +167,7 @@ export async function getProfile(userId: string) {
 export async function getWeekly(userId: string, role: "student" | "komti" | "lecturer") {
   const catalog = await getCatalog();
   const classIds = role === "lecturer"
-    ? Object.values(catalog.classes).filter((c) => c.lecturerId === userId).map((c) => c.id)
+    ? Object.values(catalog.classes).filter((c) => c.lecturerId === userId || c.assistantIds.includes(userId)).map((c) => c.id)
     : await getClassIdsFor(userId);
   if (!classIds.length) return [];
   const rows = await db.select().from(s.meetings).where(inArray(s.meetings.classId, classIds));
