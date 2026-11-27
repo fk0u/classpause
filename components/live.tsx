@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, AlertTriangle, Radio, X } from "lucide-react";
-import { useT, fmt } from "@/lib/i18n/client";
+import { useT, fmt, tr } from "@/lib/i18n/client";
 
 type Toast = { id: number; text: string; tone: "ok" | "warn" | "info"; href?: string };
 type Ctx = { toast: (text: string, tone?: Toast["tone"], href?: string) => void; connected: boolean };
@@ -23,7 +23,8 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
   const tRef = useRef(t);
   tRef.current = t;
 
-  const toast = useCallback((text: string, tone: Toast["tone"] = "info", href?: string) => {
+  const toast = useCallback((raw: string, tone: Toast["tone"] = "info", href?: string) => {
+    const text = tr(tRef.current, raw);
     const id = ++tid.current;
     setToasts((t) => [...t.slice(-3), { id, text, tone, href }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), href ? 12000 : 4500);
@@ -38,7 +39,7 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
         const e = JSON.parse(m.data);
         // Translate on the client so every viewer sees their own language.
         const n = (tRef.current.notif as Record<string, unknown>)[e.kind] as { title: string; body: string } | undefined;
-        if (e.type !== "inbox") toast(n ? `${n.title}${e.vars?.course ? ` · ${e.vars.course}` : ""}` : e.message, e.tone);
+        if (e.type !== "inbox" && e.type !== "room") toast(n ? `${n.title}${e.vars?.course ? ` · ${e.vars.course}` : ""}` : e.message, e.tone);
       } catch { /* ignore */ }
       // Coalesce bursts of events into one server refresh.
       if (refreshTimer.current) clearTimeout(refreshTimer.current);

@@ -25,7 +25,7 @@ export default function LecturerBoard({ name, sessions, permissions }: { name: s
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <section className="min-w-0">
         <p className="text-sm text-slate-500">{name}</p>
-        <h1 className="font-display text-4xl font-bold tracking-tight">{t.lecturer.title}</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{t.lecturer.title}</h1>
         <p className="mt-2 max-w-xl text-slate-500">{t.lecturer.lead}</p>
 
         {waiting.length > 0 && (

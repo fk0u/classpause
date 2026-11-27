@@ -6,7 +6,7 @@ import { db, schema as s } from "@/db";
 import { getTodaySessions, getUnreadCount } from "@/lib/queries";
 import { LiveProvider, LiveDot } from "@/components/live";
 import { Avatar } from "@/components/avatar";
-import Dock from "@/components/dock";
+import Dock, { DemoHeaderButtons } from "@/components/dock";
 import TopNav from "@/components/top-nav";
 import { getDict } from "@/lib/i18n/server";
 
@@ -32,7 +32,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link href="/" className="font-display text-2xl font-bold tracking-tight">ClassPause</Link>
             <span className="hidden sm:block"><LiveDot /></span>
             <TopNav role={user.role} unread={unread} />
-            <Link href="/profile" className="ml-auto flex items-center gap-3 rounded-full p-1 hover:bg-white/10 lg:pr-4">
+            <span className="ml-auto md:hidden">{demo && <DemoHeaderButtons demo={demo} />}</span>
+            <Link href="/profile" className="flex md:ml-auto items-center gap-3 rounded-full p-1 hover:bg-white/10 lg:pr-4">
               <Avatar name={user.name} size={40} />
               <span className="hidden whitespace-nowrap leading-tight lg:block">
                 <span className="block text-sm font-semibold">{user.name}</span>

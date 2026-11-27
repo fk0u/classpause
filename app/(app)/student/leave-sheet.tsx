@@ -7,7 +7,7 @@ import type { getStudentView } from "@/lib/queries";
 import { requestPermissionAction } from "@/app/actions";
 import { permissionSchema } from "@/lib/validation";
 import { useLive } from "@/components/live";
-import { useT, fmt } from "@/lib/i18n/client";
+import { useT, fmt, tr } from "@/lib/i18n/client";
 
 type Ses = Awaited<ReturnType<typeof getStudentView>>["sessions"][number];
 
@@ -22,10 +22,10 @@ export default function LeaveSheet({ session, onClose }: { session: Ses; onClose
   const send = () => {
     const input = { sessionId: session.id, type, note };
     const check = permissionSchema.safeParse(input); // same schema the server enforces
-    if (!check.success) return setError(check.error.issues[0].message);
+    if (!check.success) return setError(tr(t, check.error.issues[0].message));
     start(async () => {
       const r = await requestPermissionAction(input);
-      if (r.ok) { toast(t.leave.sent, "ok"); onClose(); } else setError(r.error);
+      if (r.ok) { toast(t.leave.sent, "ok"); onClose(); } else setError(tr(t, r.error));
     });
   };
 

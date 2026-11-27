@@ -15,6 +15,13 @@
       "when": 1795527914108,
       "tag": "0001_push_i18n",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795756097567,
+      "tag": "0002_rooms_facilities",
+      "breakpoints": true
     }
   ]
 }

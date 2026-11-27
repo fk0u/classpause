@@ -37,7 +37,7 @@ export default function InboxView({ items }: { items: Item[] }) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm text-slate-500">{fmt(t.inbox.unread, { n: unread })}</p>
-          <h1 className="font-display text-4xl font-bold tracking-tight">{t.inbox.title}</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{t.inbox.title}</h1>
           <p className="mt-1 text-slate-500">{t.inbox.lead}</p>
         </div>
         {unread > 0 && (

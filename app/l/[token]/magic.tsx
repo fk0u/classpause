@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { CheckCircle2 } from "lucide-react";
 import { LecturerCard, type LecturerAction } from "@/components/lecturer-card";
 import { magicAction } from "@/app/actions";
-import { useT, fmt } from "@/lib/i18n/client";
+import { useT, fmt, tr } from "@/lib/i18n/client";
 
 type Card = Omit<React.ComponentProps<typeof LecturerCard>, "onAction">;
 
@@ -26,7 +26,7 @@ export default function MagicCard({ token, card }: { token: string; card: Card }
     <>
       <LecturerCard {...card} onAction={async (action) => {
         const r = await magicAction({ token, action });
-        if (r.ok) setDone(action); else setError(r.error);
+        if (r.ok) setDone(action); else setError(tr(t, r.error));
       }} />
       {error && <p className="mt-3 rounded-2xl bg-rose p-3 text-sm text-red-700">{error}</p>}
     </>

@@ -153,6 +153,30 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [index("notifications_user_created_idx").on(t.userId, t.createdAt)]);
 
+/** A study group's hold on a free room slot (rooms freed by cancelled classes show up here too). */
+export const roomClaims = pgTable("room_claims", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  roomId: uuid("room_id").notNull().references(() => rooms.id, { onDelete: "cascade" }),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  purpose: text("purpose").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [uniqueIndex("room_claims_slot_uq").on(t.roomId, t.startsAt)]);
+
+export const facilityKindEnum = pgEnum("facility_kind", ["marker", "projector", "ac", "cleanliness", "parking_full", "other"]);
+
+/** One-tap crowd reports about rooms and parking. "Me too" bumps confirms instead of duplicating. */
+export const facilityReports = pgTable("facility_reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  place: text("place").notNull(),
+  kind: facilityKindEnum("kind").notNull(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  confirms: integer("confirms").notNull().default(1),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [index("facility_created_idx").on(t.createdAt)]);
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type SessionStatus = (typeof sessionStatusEnum.enumValues)[number];

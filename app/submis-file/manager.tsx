@@ -58,7 +58,7 @@ export default function FileManager({ files }: { files: F[] }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-slate-500">STACK 2026 · Semifinal · due 30 Nov, 23:59 WIB</p>
-          <h1 className="font-display text-4xl font-bold tracking-tight">Submission Files 🗂️</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Submission Files 🗂️</h1>
           <p className="mt-1 text-slate-500">{files.length} files · {fmtSize(total)}</p>
         </div>
         <button onClick={() => input.current?.click()} disabled={!!busy}

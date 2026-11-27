@@ -10,4 +10,6 @@ export function I18nProvider({ locale, children }: { locale: Locale; children: R
 }
 
 export const useT = () => useContext(Ctx);
+/** Translate a server message when this language has a mapping for it. */
+export const tr = (t: Dict, msg: string) => t.errors[msg] ?? msg;
 export { fmt } from "./dict";

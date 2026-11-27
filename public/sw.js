@@ -1,6 +1,9 @@
 // ClassPause service worker: cache-first for immutable build assets,
 // network-first for pages (offline fallback), never touches API or live streams.
-const CACHE = "classpause-v3";
+const CACHE = "classpause-v4";
+const PAGES = "classpause-pages-v1";
+// App pages kept for offline reading (radar and the Micro-Pause module it embeds, schedule, inbox).
+const OFFLINE_PAGES = ["/student", "/schedule", "/inbox", "/komti", "/lecturer", "/rooms"];
 const SHELL = ["/icon.svg", "/offline.html"];
 
 self.addEventListener("install", (e) => {
@@ -10,7 +13,7 @@ self.addEventListener("install", (e) => {
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== PAGES).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
@@ -32,7 +35,13 @@ self.addEventListener("fetch", (e) => {
   }
 
   if (req.mode === "navigate") {
-    e.respondWith(fetch(req).catch(() => caches.match("/offline.html")));
+    // Network first; keep the last good copy of key pages so the radar and today's
+    // Micro-Pause still open when campus Wi-Fi or the LMS-hour rush drops the connection.
+    const keep = OFFLINE_PAGES.includes(url.pathname);
+    e.respondWith(fetch(req).then((res) => {
+      if (keep && res.ok) { const copy = res.clone(); caches.open(PAGES).then((c) => c.put(url.pathname, copy)); }
+      return res;
+    }).catch(async () => (keep && (await caches.match(url.pathname, { cacheName: PAGES }))) || caches.match("/offline.html")));
   }
 });
 

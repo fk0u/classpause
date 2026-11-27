@@ -8,7 +8,7 @@ const en = {
     nothingYet: "Nothing yet.", seeAll: "See all", minutes: "min",
   },
   roles: { student: "Student", komti: "Komti", lecturer: "Lecturer" },
-  nav: { radar: "Radar", ops: "Class Ops", classes: "My Classes", schedule: "Schedule", inbox: "Inbox", profile: "Profile", design: "Design" },
+  nav: { radar: "Radar", ops: "Class Ops", classes: "My Classes", schedule: "Schedule", inbox: "Inbox", profile: "Profile", design: "Design", rooms: "Rooms" },
   status: {
     scheduled: { label: "Scheduled", advice: "Lecturer gets a 1-tap card 2 hours before." },
     pending: { label: "Hold commute", advice: "Waiting for the lecturer. Don’t leave yet." },
@@ -54,6 +54,15 @@ const en = {
     linkNote: "Single-use link · no login · expires at H+15m", sentTo: "Sent to {n} students", sentLead: "They see the update on their radar right now. You can close this page.",
     expiredTitle: "This link is no longer active", expiredLead: "It was already used, or the 15-minute window passed and the class moved to Micro-Pause.",
   },
+  rooms: {
+    title: "Open Rooms 🚪", lead: "Free rooms for the rest of today. Rooms freed by a cancelled class turn into study space.",
+    freed: "Freed: {course} moved", free: "Free", claim: "Claim", claimed: "Claimed by {name}", mine: "Your claim", release: "Release",
+    purpose: "What is it for?", purposePh: "e.g. Group project, database exam prep", confirm: "Claim room", seats: "{n} seats",
+    none: "No free rooms left today.", reportTitle: "Report a problem", reportLead: "One tap tells the next class and campus staff.",
+    place: "Where?", parking: "Parking", openReports: "Open reports", noReports: "Nothing reported in the last 3 hours.",
+    meToo: "Me too", fixed: "Mark fixed", confirms: "{n} reports", reported: "Reported, thanks!",
+    kinds: { marker: "Markers empty", projector: "Projector broken", ac: "AC not working", cleanliness: "Room dirty", parking_full: "Parking full", other: "Other" },
+  },
   schedule: { title: "Weekly Schedule 🗓️", lead: "Your recurring timetable. One-off changes show on the radar.", days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
   inbox: { title: "Inbox 📬", lead: "Everything ClassPause told you, newest first.", markAll: "Mark all read", empty: "You’re all caught up ✨", unread: "{n} unread" },
   profile: {
@@ -81,6 +90,8 @@ const en = {
   demo: { clock: "Demo clock", start: "Start class now", skip: "Skip to H+15m", hint: "Start class · Skip to H+15m", link: "Lecturer magic link (would arrive by push/Telegram):" },
   design: { title: "Design System", lead: "Tokens and components that every ClassPause screen is built from." },
   offline: { title: "You’re offline" },
+  /** Server error messages are written in English; other languages map them here. */
+  errors: {} as Record<string, string>,
 };
 
 export type Dict = typeof en;
@@ -95,7 +106,7 @@ const id: DeepString<Dict> = {
     nothingYet: "Belum ada apa-apa.", seeAll: "Lihat semua", minutes: "mnt",
   },
   roles: { student: "Mahasiswa", komti: "Komti", lecturer: "Dosen" },
-  nav: { radar: "Radar", ops: "Operasi Kelas", classes: "Kelas Saya", schedule: "Jadwal", inbox: "Kotak Masuk", profile: "Profil", design: "Desain" },
+  nav: { radar: "Radar", ops: "Operasi Kelas", classes: "Kelas Saya", schedule: "Jadwal", inbox: "Kotak Masuk", profile: "Profil", design: "Desain", rooms: "Ruang" },
   status: {
     scheduled: { label: "Terjadwal", advice: "Dosen menerima kartu 1-tap 2 jam sebelumnya." },
     pending: { label: "Tahan berangkat", advice: "Menunggu dosen. Jangan berangkat dulu." },
@@ -141,6 +152,15 @@ const id: DeepString<Dict> = {
     linkNote: "Link sekali pakai · tanpa login · kedaluwarsa di H+15m", sentTo: "Terkirim ke {n} mahasiswa", sentLead: "Mereka melihat pembaruannya sekarang. Halaman ini boleh ditutup.",
     expiredTitle: "Link ini sudah tidak aktif", expiredLead: "Link sudah dipakai, atau jendela 15 menit sudah lewat dan kelas pindah ke Micro-Pause.",
   },
+  rooms: {
+    title: "Ruang Terbuka 🚪", lead: "Ruang kosong untuk sisa hari ini. Ruang dari kelas yang batal berubah jadi ruang belajar.",
+    freed: "Kosong: {course} dipindah", free: "Kosong", claim: "Klaim", claimed: "Diklaim {name}", mine: "Klaim kamu", release: "Lepas",
+    purpose: "Untuk apa?", purposePh: "mis. Kerja kelompok, belajar ujian basis data", confirm: "Klaim ruang", seats: "{n} kursi",
+    none: "Tidak ada ruang kosong lagi hari ini.", reportTitle: "Laporkan masalah", reportLead: "Sekali tap memberi tahu kelas berikutnya dan petugas kampus.",
+    place: "Di mana?", parking: "Parkir", openReports: "Laporan aktif", noReports: "Tidak ada laporan dalam 3 jam terakhir.",
+    meToo: "Saya juga", fixed: "Tandai beres", confirms: "{n} laporan", reported: "Terlapor, terima kasih!",
+    kinds: { marker: "Spidol habis", projector: "Proyektor rusak", ac: "AC mati", cleanliness: "Ruang kotor", parking_full: "Parkir penuh", other: "Lainnya" },
+  },
   schedule: { title: "Jadwal Mingguan 🗓️", lead: "Jadwal rutinmu. Perubahan sekali jalan tampil di radar.", days: ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"] },
   inbox: { title: "Kotak Masuk 📬", lead: "Semua pemberitahuan ClassPause, terbaru di atas.", markAll: "Tandai semua dibaca", empty: "Semua sudah dibaca ✨", unread: "{n} belum dibaca" },
   profile: {
@@ -168,6 +188,38 @@ const id: DeepString<Dict> = {
   demo: { clock: "Jam demo", start: "Mulai kelas sekarang", skip: "Lompat ke H+15m", hint: "Mulai kelas · Lompat ke H+15m", link: "Magic link dosen (biasanya lewat push/Telegram):" },
   design: { title: "Design System", lead: "Token dan komponen yang dipakai semua layar ClassPause." },
   offline: { title: "Kamu sedang offline" },
+  errors: {
+    "Students only": "Khusus mahasiswa",
+    "Lecturers only": "Khusus dosen",
+    "Sign in first": "Masuk dulu",
+    "Too many requests": "Terlalu banyak permintaan, tunggu sebentar",
+    "Too many attempts, wait a minute": "Terlalu banyak percobaan, tunggu satu menit",
+    "Not your class": "Ini bukan kelas Anda",
+    "Not found": "Tidak ditemukan",
+    "Bad request": "Permintaan tidak valid",
+    "Komti of this class only": "Khusus komti kelas ini",
+    "Lecturer of this class only": "Khusus dosen pengampu kelas ini",
+    "Komti or lecturer only": "Khusus komti atau dosen",
+    "Demo mode is off": "Mode demo tidak aktif",
+    "Could not restart": "Gagal memulai ulang",
+    "This class already has an answer.": "Kelas ini sudah dijawab.",
+    "This link was already used or has expired.": "Link ini sudah dipakai atau kedaluwarsa.",
+    "The 15-minute window has passed; the class moved to Micro-Pause.": "Jendela 15 menit sudah lewat; kelas pindah ke Micro-Pause.",
+    "No reschedule is waiting for this class.": "Tidak ada jadwal ulang yang menunggu untuk kelas ini.",
+    "That slot is no longer offered.": "Slot itu sudah tidak tersedia.",
+    "Someone else just changed this class. Refresh and try again.": "Orang lain baru saja mengubah kelas ini. Muat ulang lalu coba lagi.",
+    "You are not enrolled in this class.": "Kamu tidak terdaftar di kelas ini.",
+    "Micro-Pause is not active for this class.": "Micro-Pause tidak aktif untuk kelas ini.",
+    "Answer every question on your paper.": "Jawab semua soal di kertasmu.",
+    "Already decided.": "Sudah diputuskan.",
+    "Add a short reason (5+ characters)": "Tulis alasan singkat (minimal 5 karakter)",
+    "Say what the room is for (3+ characters)": "Tulis untuk apa ruang ini (minimal 3 karakter)",
+    "That room isn’t free at that time any more.": "Ruang itu sudah tidak kosong di jam tersebut.",
+    "Someone already claimed it.": "Sudah diklaim orang lain.",
+    "Two room claims per day, so everyone gets a turn.": "Maksimal dua klaim ruang per hari, agar semua kebagian.",
+    "Unsupported language": "Bahasa tidak didukung",
+    "Unknown account": "Akun tidak dikenal",
+  },
 };
 
 export const DICTS = { en, id: id as Dict };

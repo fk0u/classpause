@@ -31,7 +31,7 @@ export default function StudentBoard({ firstName, sessions, completedPauses }: V
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-sm text-slate-500">{fmt(t.student.hi, { name: firstName })} · {fmtDay(new Date(), t.locale)}</p>
-            <h1 className="font-display text-4xl font-bold tracking-tight">{t.student.title}</h1>
+            <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{t.student.title}</h1>
           </div>
         </div>
 

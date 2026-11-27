@@ -186,3 +186,53 @@ export async function markInboxRead(id?: unknown): Promise<ActionResult> {
     .where(and(eq(s.notifications.userId, u.id), isNull(s.notifications.readAt), ...(one ? [eq(s.notifications.id, one.data)] : [])));
   return { ok: true };
 }
+
+/* ---------- Open rooms & facility reports ---------- */
+
+const claimSchema = z.object({ roomId: uuid, startsAt: z.string().datetime(), purpose: z.string().trim().min(3, "Say what the room is for (3+ characters)").max(80) });
+const reportSchema = z.object({
+  place: z.string().trim().min(1).max(40).regex(/^[A-Za-z0-9 ._-]+$/),
+  kind: z.enum(["marker", "projector", "ac", "cleanliness", "parking_full", "other"]),
+});
+
+export async function claimRoomAction(input: unknown): Promise<ActionResult> {
+  const u = await currentUser();
+  if (!u) return fail("Sign in first");
+  if (!(await guard(`claim:${u.id}`))) return fail("Too many requests");
+  const p = claimSchema.safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  const { claimRoom } = await import("@/lib/rooms");
+  const r = await claimRoom(u.id, p.data.roomId, p.data.startsAt, p.data.purpose);
+  return r.ok ? { ok: true } : r;
+}
+
+export async function releaseRoomAction(claimId: unknown): Promise<ActionResult> {
+  const u = await currentUser();
+  const id = uuid.safeParse(claimId);
+  if (!u || !id.success) return fail("Bad request");
+  const { releaseRoom } = await import("@/lib/rooms");
+  await releaseRoom(u.id, id.data);
+  return { ok: true };
+}
+
+export async function reportFacilityAction(input: unknown): Promise<ActionResult> {
+  const u = await currentUser();
+  if (!u) return fail("Sign in first");
+  if (!(await guard(`report:${u.id}`))) return fail("Too many requests");
+  const p = reportSchema.safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  const { report } = await import("@/lib/rooms");
+  await report(u.id, p.data.place, p.data.kind);
+  return { ok: true };
+}
+
+/** Komti and lecturers can mark a report fixed. */
+export async function resolveReportAction(id: unknown): Promise<ActionResult> {
+  const u = await currentUser();
+  const rid = uuid.safeParse(id);
+  if (!u || !rid.success) return fail("Bad request");
+  if (u.role === "student") return fail("Komti or lecturer only");
+  const { resolveReport } = await import("@/lib/rooms");
+  await resolveReport(rid.data);
+  return { ok: true };
+}

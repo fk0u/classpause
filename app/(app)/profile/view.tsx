@@ -45,7 +45,7 @@ export default function ProfileView({ user, profile, push }: Props) {
             </div>
           ))}
         </div>
-        <form action={signOutAction} className="mt-6">
+        <form action={signOutAction} className="mt-6" onSubmit={() => { try { caches?.delete("classpause-pages-v1"); } catch {} }}>
           <button className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-white/10 font-semibold hover:bg-white/20"><LogOut size={16} /> {t.common.signOut}</button>
         </form>
       </motion.section>

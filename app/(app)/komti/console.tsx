@@ -26,7 +26,7 @@ export default function KomtiConsole({ sessions, permissions, feed }: View) {
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <section className="min-w-0">
         <p className="text-sm text-slate-500">{t.komti.kicker}</p>
-        <h1 className="font-display text-4xl font-bold tracking-tight">{t.komti.title}</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{t.komti.title}</h1>
 
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
