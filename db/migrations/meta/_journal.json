@@ -29,6 +29,13 @@
       "when": 1795758266619,
       "tag": "0003_attendance_permitly_changes",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795777932709,
+      "tag": "0004_stream_cohorts_auth",
+      "breakpoints": true
     }
   ]
 }

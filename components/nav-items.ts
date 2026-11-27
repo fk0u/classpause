@@ -1,4 +1,4 @@
-import { Radar, ClipboardList, Presentation, CalendarDays, Bell, UserRound, DoorOpen } from "lucide-react";
+import { Radar, ClipboardList, Presentation, CalendarDays, Bell, UserRound, DoorOpen, Megaphone, Settings2 } from "lucide-react";
 import type { Dict } from "@/lib/i18n/dict";
 
 type Role = "student" | "komti" | "lecturer";
@@ -7,10 +7,11 @@ export function navItems(role: Role, t: Dict) {
   const home = role === "lecturer"
     ? [{ href: "/lecturer", label: t.nav.classes, icon: Presentation }]
     : role === "komti"
-      ? [{ href: "/komti", label: t.nav.ops, icon: ClipboardList }, { href: "/student", label: t.nav.radar, icon: Radar }]
+      ? [{ href: "/komti", label: t.nav.ops, icon: ClipboardList }, { href: "/student", label: t.nav.radar, icon: Radar }, { href: "/manage", label: t.nav.manage, icon: Settings2 }]
       : [{ href: "/student", label: t.nav.radar, icon: Radar }];
   return [
     ...home,
+    { href: "/stream", label: t.nav.stream, icon: Megaphone },
     { href: "/schedule", label: t.nav.schedule, icon: CalendarDays },
     { href: "/rooms", label: t.nav.rooms, icon: DoorOpen },
     { href: "/inbox", label: t.nav.inbox, icon: Bell, badge: true },

@@ -26,7 +26,7 @@ export async function signInAction(input: unknown) {
   const p = signInSchema.safeParse(input);
   if (!p.success) return zodFail(p.error);
   const [u] = await db.select().from(s.users).where(eq(s.users.id, p.data.userId)).limit(1);
-  if (!u) return fail("Unknown account");
+  if (!u || !u.isDemo) return fail("Unknown account");
   await signIn(u.id);
   redirect(homeFor(u.role));
 }
@@ -56,6 +56,14 @@ export async function magicAction(input: unknown): Promise<ActionResult> {
   if (!p.success) return zodFail(p.error);
   const r = await P.respondByToken(p.data.token, p.data.action);
   return r.ok ? { ok: true } : r;
+}
+
+/** Komti, SiPen or lecturer of the session's course. */
+async function staffOf(sessionId: string, userId: string) {
+  const [ses] = await db.select({ classId: s.sessions.classId }).from(s.sessions).where(eq(s.sessions.id, sessionId)).limit(1);
+  if (!ses) return null;
+  const { courseRole } = await import("@/lib/accounts");
+  return courseRole(ses.classId, userId);
 }
 
 async function requireKomtiOf(sessionId: string) {
@@ -138,9 +146,11 @@ export async function checkInAction(sessionId: unknown): Promise<ActionResult> {
 export async function uploadPhotoAction(form: FormData): Promise<ActionResult> {
   const id = uuid.safeParse(form.get("sessionId"));
   if (!id.success) return fail("Bad request");
-  const u = await requireKomtiOf(id.data);
-  if (!u) return fail("Komti of this class only");
+  const u = await currentUser();
   const [ses] = await db.select().from(s.sessions).where(eq(s.sessions.id, id.data)).limit(1);
+  const { courseRole } = await import("@/lib/accounts");
+  const role = u && ses ? await courseRole(ses.classId, u.id) : null;
+  if (!u || (role !== "komti" && role !== "sipen")) return fail("Komti or SiPen of this class only");
   const now = Date.now();
   if (!ses || now < +ses.startsAt - 15 * 60_000 || now > +ses.endsAt + 30 * 60_000) return fail("Class photo only while class runs.");
   const { saveUpload } = await import("@/lib/uploads");
@@ -156,9 +166,7 @@ export async function markAttendanceAction(input: unknown): Promise<ActionResult
   const me = await currentUser();
   const p = markSchema.safeParse(input);
   if (!me || !p.success) return fail("Bad request");
-  const [k] = await db.select({ komti: s.classes.komtiId, lecturer: s.classes.lecturerId }).from(s.sessions)
-    .innerJoin(s.classes, eq(s.classes.id, s.sessions.classId)).where(eq(s.sessions.id, p.data.sessionId)).limit(1);
-  if (!k || (k.komti !== me.id && k.lecturer !== me.id)) return fail("Komti or lecturer only");
+  if (!(await staffOf(p.data.sessionId, me.id))) return fail("Komti or lecturer only");
   const { setAttendance } = await import("@/lib/campus");
   await setAttendance(p.data.sessionId, p.data.userId, p.data.status, `manual:${me.role}`);
   return { ok: true };
@@ -325,9 +333,7 @@ export async function getAttendanceAction(sessionId: unknown) {
   const me = await currentUser();
   const id = uuid.safeParse(sessionId);
   if (!me || !id.success) return null;
-  const [k] = await db.select({ komti: s.classes.komtiId, lecturer: s.classes.lecturerId }).from(s.sessions)
-    .innerJoin(s.classes, eq(s.classes.id, s.sessions.classId)).where(eq(s.sessions.id, id.data)).limit(1);
-  if (!k || (k.komti !== me.id && k.lecturer !== me.id)) return null;
+  if (!(await staffOf(id.data, me.id))) return null;
   const { attendanceList } = await import("@/lib/campus");
   const r = await attendanceList(id.data);
   return r && { meeting: r.meeting, rows: r.rows };

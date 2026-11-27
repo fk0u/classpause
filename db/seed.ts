@@ -6,6 +6,7 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as s from "./schema";
 import { MODULES } from "./modules";
+import { ensureDemoCohort } from "./demo-cohort";
 
 const sql = postgres(process.env.DATABASE_URL!, { max: 1, onnotice: () => {} });
 const db = drizzle(sql, { schema: s });
@@ -88,6 +89,7 @@ async function main() {
 
   await db.insert(s.microModules).values(classes.filter((c) => MODULES[c.code]).map((c) => ({ classId: c.id, ...MODULES[c.code] })));
 
+  await ensureDemoCohort(db);
   console.log(`seeded: ${lecturers.length} lecturers, ${students.length} students, ${classes.length} classes, ${plan.length} meetings`);
   await sql.end();
 }

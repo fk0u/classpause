@@ -25,7 +25,9 @@ export default function Dock({ role, unread, demo }: {
     if (r.ok) toast(t.demo.link, "info", r.data!.url); else toast(r.error, "warn");
   });
   const skip = () => start(async () => { const r = await demoExpireAction(demo!.sessionId); if (!r.ok) toast(r.error, "warn"); });
-  const items = navItems(role, t);
+  const all = navItems(role, t);
+  // Phones fit six tabs; the komti keeps Schedule and Rooms in the desktop nav and Profile.
+  const items = all.length > 6 ? all.filter((i) => !["/rooms", "/schedule"].includes(i.href)) : all;
 
   return (
     <>

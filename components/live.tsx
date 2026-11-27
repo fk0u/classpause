@@ -39,7 +39,7 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
         const e = JSON.parse(m.data);
         // Translate on the client so every viewer sees their own language.
         const n = (tRef.current.notif as Record<string, unknown>)[e.kind] as { title: string; body: string } | undefined;
-        if (e.type !== "inbox" && e.type !== "room") toast(n ? `${n.title}${e.vars?.course ? ` · ${e.vars.course}` : ""}` : e.message, e.tone);
+        if (e.type !== "inbox" && e.type !== "room" && e.type !== "stream") toast(n ? `${n.title}${e.vars?.course ? ` · ${e.vars.course}` : ""}` : e.message, e.tone);
       } catch { /* ignore */ }
       // Coalesce bursts of events into one server refresh.
       if (refreshTimer.current) clearTimeout(refreshTimer.current);

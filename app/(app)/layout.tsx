@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [t, unread] = await Promise.all([getDict(), getUnreadCount(user.id)]);
 
   let demo: { classId: string; sessionId: string | null } | null = null;
-  if (env.DEMO_MODE) {
+  if (env.DEMO_MODE && user.isDemo) {
     const [c] = await db.select({ id: s.classes.id }).from(s.classes).where(eq(s.classes.code, "IF2101-A"));
     if (c) {
       const today = await getTodaySessions([c.id]);

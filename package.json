@@ -10,6 +10,7 @@
     "db:seed": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env.production.local db/seed.ts",
     "db:dev": "pglite-server --db=.pgdata --port=5433",
     "typecheck": "tsc --noEmit",
+    "db:demo": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env.production.local db/demo-cohort.ts",
     "db:modules": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env.production.local db/update-modules.ts"
   },
   "dependencies": {

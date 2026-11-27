@@ -1,5 +1,5 @@
 import {
-  pgTable, pgEnum, text, integer, timestamp, jsonb, primaryKey, index, uniqueIndex, uuid, smallint,
+  pgTable, pgEnum, text, integer, timestamp, jsonb, primaryKey, index, uniqueIndex, uuid, smallint, boolean,
 } from "drizzle-orm/pg-core";
 
 export const roleEnum = pgEnum("role", ["student", "komti", "lecturer"]);
@@ -19,6 +19,12 @@ export const users = pgTable("users", {
   studentNo: text("student_no"),
   telegramChatId: text("telegram_chat_id"),
   locale: text("locale").notNull().default("en"),
+  /** scrypt hash ("salt:hash", hex). Null for demo personas and for lecturers a komti added who haven't claimed the account yet. */
+  passwordHash: text("password_hash"),
+  /** Demo personas: only these can be entered without a password, and only through the demo gate. */
+  isDemo: boolean("is_demo").notNull().default(false),
+  /** One-time code a komti hands to a lecturer they added, so the lecturer can set a password. */
+  claimCode: text("claim_code").unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -29,15 +35,34 @@ export const rooms = pgTable("rooms", {
   capacity: integer("capacity").notNull(),
 });
 
+/** A class group (angkatan/kelas) led by a komti. Students join it with the invite code. */
+export const cohorts = pgTable("cohorts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  program: text("program").notNull(),
+  inviteCode: text("invite_code").notNull().unique(),
+  komtiId: uuid("komti_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const cohortMembers = pgTable("cohort_members", {
+  cohortId: uuid("cohort_id").notNull().references(() => cohorts.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.cohortId, t.userId] }), index("cohort_members_user_idx").on(t.userId)]);
+
 export const classes = pgTable("classes", {
   id: uuid("id").primaryKey().defaultRandom(),
-  code: text("code").notNull().unique(),
+  code: text("code").notNull(),
   name: text("name").notNull(),
   section: text("section").notNull(),
   lecturerId: uuid("lecturer_id").notNull().references(() => users.id),
   komtiId: uuid("komti_id").references(() => users.id),
+  cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "cascade" }),
+  /** SiPen: the student in charge of this course (PJ mata kuliah). */
+  sipenId: uuid("sipen_id").references(() => users.id, { onDelete: "set null" }),
   credits: smallint("credits").notNull().default(3),
-});
+}, (t) => [uniqueIndex("classes_cohort_code_uq").on(t.cohortId, t.code)]);
 
 export const enrollments = pgTable("enrollments", {
   classId: uuid("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
@@ -220,6 +245,28 @@ export const holidays = pgTable("holidays", {
   date: text("date").primaryKey(),
   name: text("name").notNull(),
 });
+
+export const postKindEnum = pgEnum("post_kind", ["announcement", "discussion", "info"]);
+
+/** Class stream: announcements, discussion and info for a whole class group or one course, in one feed. */
+export const posts = pgTable("posts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  cohortId: uuid("cohort_id").notNull().references(() => cohorts.id, { onDelete: "cascade" }),
+  classId: uuid("class_id").references(() => classes.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  kind: postKindEnum("kind").notNull(),
+  body: text("body").notNull(),
+  pinned: boolean("pinned").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [index("posts_cohort_created_idx").on(t.cohortId, t.createdAt)]);
+
+export const postComments = pgTable("post_comments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  postId: uuid("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [index("post_comments_post_idx").on(t.postId, t.createdAt)]);
 
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
