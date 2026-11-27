@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Crown, Plus, RefreshCw, Trash2, UserRoundCog, X, Pencil, Loader2 } from "lucide-react";
+import { Check, Copy, Crown, Plus, RefreshCw, Trash2, UserRoundCog, X, Pencil, Loader2, UserMinus } from "lucide-react";
 import type { manageView } from "@/lib/accounts";
 import * as act from "@/app/account-actions";
 import { Field, Submit, FormError } from "@/components/form-bits";
@@ -38,14 +38,13 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
   );
 }
 
-export default function ManageBoard({ groups, me }: { groups: Group[]; me: string }) {
-  return <div className="space-y-10">{groups.map((g) => <GroupView key={g.cohort.id} g={g} me={me} />)}</div>;
+export default function ManageBoard({ groups, me, origin }: { groups: Group[]; me: string; origin: string }) {
+  return <div className="space-y-10">{groups.map((g) => <GroupView key={g.cohort.id} g={g} me={me} origin={origin} />)}</div>;
 }
 
-function GroupView({ g, me }: { g: Group; me: string }) {
+function GroupView({ g, me, origin }: { g: Group; me: string; origin: string }) {
   const t = useT();
   const { busy, run } = useRun();
-  const [origin] = useState(() => (typeof window === "undefined" ? "" : window.location.origin));
   const [adding, setAdding] = useState(g.courses.length === 0);
   const [err, setErr] = useState<string | null>(null);
   const [to, setTo] = useState("");
@@ -118,9 +117,35 @@ function GroupView({ g, me }: { g: Group; me: string }) {
             <button disabled={!to || busy} onClick={() => { if (confirm(t.manage.transferWarn)) run(() => act.transferKomtiAction({ cohortId: g.cohort.id, to })); }}
               className="min-h-12 rounded-full bg-ink px-5 font-semibold text-white disabled:opacity-40">{t.manage.transferKomti}</button>
           </div>
-          <p className="mt-4 text-sm font-semibold">{t.manage.members} · {g.members.length}</p>
-          <p className="mt-1 text-sm text-ink/60">{g.members.map((m) => m.name).join(", ")}</p>
+          <p className="mt-5 text-sm font-semibold">{t.manage.members} · {g.members.length}</p>
+          <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
+            {g.members.map((m) => (
+              <li key={m.id} className="flex min-w-0 items-center gap-2 rounded-2xl bg-paper py-1.5 pl-3 pr-1.5 text-sm">
+                <span className="min-w-0 flex-1 truncate">{m.name}{m.studentNo ? <span className="text-ink/40"> · {m.studentNo}</span> : null}</span>
+                {m.id === me
+                  ? <Crown size={15} className="mr-2 shrink-0 text-violet" />
+                  : <button disabled={busy} aria-label={t.settings.removeMember} title={t.settings.removeMember}
+                      onClick={() => { if (confirm(fmt(t.settings.removeConfirm, { name: m.name }))) run(() => act.removeMemberAction({ cohortId: g.cohort.id, userId: m.id })); }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white"><UserMinus size={14} /></button>}
+              </li>
+            ))}
+          </ul>
         </div>
+      )}
+
+      {g.isKomti && (
+        <form className="space-y-3 rounded-[28px] border-2 border-rose bg-white p-5" onSubmit={(e) => {
+          e.preventDefault();
+          const v = new FormData(e.currentTarget).get("confirm");
+          run(() => act.deleteCohortAction({ cohortId: g.cohort.id, confirm: v }));
+        }}>
+          <h2 className="flex items-center gap-2 font-display text-xl font-bold text-rose-deep"><Trash2 size={18} /> {t.settings.deleteGroup}</h2>
+          <p className="text-sm text-ink/60">{t.settings.deleteGroupLead} <b className="text-ink">{g.cohort.name}</b></p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input name="confirm" required aria-label={t.settings.deleteGroup} className="min-h-12 min-w-0 flex-1 rounded-2xl bg-paper px-4 text-[16px]" />
+            <button disabled={busy} className="min-h-12 rounded-full bg-rose-deep px-5 font-semibold text-white disabled:opacity-50">{t.settings.deleteGroup}</button>
+          </div>
+        </form>
       )}
     </section>
   );
@@ -205,7 +230,7 @@ function MeetingForm({ classId }: { classId: string }) {
   const { busy, run } = useRun();
   const [err, setErr] = useState<string | null>(null);
   return (
-    <form className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_1fr_1fr_auto]" onChange={() => setErr(null)} onSubmit={(e) => {
+    <form className="mt-2 grid grid-cols-2 gap-2" onChange={() => setErr(null)} onSubmit={(e) => {
       e.preventDefault();
       const f = Object.fromEntries(new FormData(e.currentTarget));
       const form = e.currentTarget;
@@ -217,7 +242,7 @@ function MeetingForm({ classId }: { classId: string }) {
       <input name="room" aria-label={t.manage.room} placeholder={t.manage.room} required className="min-h-11 min-w-0 rounded-2xl bg-paper px-3 text-[16px] uppercase" />
       <input name="start" type="time" aria-label={t.manage.start} defaultValue="07:30" required className="min-h-11 min-w-0 rounded-2xl bg-paper px-3 text-[16px]" />
       <input name="end" type="time" aria-label={t.manage.end} defaultValue="09:10" required className="min-h-11 min-w-0 rounded-2xl bg-paper px-3 text-[16px]" />
-      <button disabled={busy} className="col-span-2 flex min-h-11 items-center justify-center gap-1 rounded-full bg-violet px-4 text-sm font-semibold text-white sm:col-span-1">
+      <button disabled={busy} className="col-span-2 flex min-h-11 items-center justify-center gap-1 rounded-full bg-violet px-4 text-sm font-semibold text-white">
         {busy ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} {t.manage.addMeeting}
       </button>
       {err && <div className="col-span-full"><FormError msg={err} /></div>}

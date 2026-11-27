@@ -165,3 +165,51 @@ export async function deletePostAction(postId: unknown) {
   if (!id.success) return fail("Bad request");
   return done(await S.deletePost((await me()).id, id.data));
 }
+
+/* ---------- Profile & membership ---------- */
+
+export async function updateProfileAction(input: unknown) {
+  const p = z.object({ name: z.string().trim().min(2, "Enter your name").max(80), email, studentNo: z.string().trim().max(20).optional(), password: z.string().max(200).optional() }).safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  return done(await A.updateProfile((await me()).id, p.data));
+}
+
+export async function changePasswordAction(input: unknown) {
+  const p = z.object({ current: z.string().min(1).max(200), next: password }).safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  const u = await me();
+  if (!rateLimit(`pw:${u.id}`, 5, 10 * 60_000)) return fail("Too many attempts. Wait a minute.");
+  return done(await A.changePassword(u.id, p.data.current, p.data.next));
+}
+
+export async function leaveCohortAction(cohortId: unknown) {
+  const id = uuid.safeParse(cohortId);
+  if (!id.success) return fail("Bad request");
+  return done(await A.leaveCohort(id.data, (await me()).id));
+}
+
+export async function removeMemberAction(input: unknown) {
+  const p = z.object({ cohortId: uuid, userId: uuid }).safeParse(input);
+  if (!p.success) return fail("Bad request");
+  return done(await A.removeMember(p.data.cohortId, (await me()).id, p.data.userId));
+}
+
+export async function deleteCohortAction(input: unknown) {
+  const p = z.object({ cohortId: uuid, confirm: z.string().max(80) }).safeParse(input);
+  if (!p.success) return fail("Bad request");
+  const r = await A.deleteCohort(p.data.cohortId, (await me()).id, p.data.confirm);
+  if (!r.ok) return r;
+  redirect("/settings");
+}
+
+export async function deleteAccountAction(input: unknown) {
+  const p = z.object({ password: z.string().min(1).max(200) }).safeParse(input);
+  if (!p.success) return fail("Your current password is wrong.");
+  const u = await me();
+  if (!rateLimit(`del:${u.id}`, 5, 10 * 60_000)) return fail("Too many attempts. Wait a minute.");
+  const r = await A.deleteAccount(u.id, p.data.password);
+  if (!r.ok) return r;
+  const { signOut } = await import("@/lib/auth");
+  await signOut();
+  redirect("/login");
+}

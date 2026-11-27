@@ -1,7 +1,7 @@
 import { randomBytes, scrypt as _scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { revalidateTag } from "next/cache";
-import { and, asc, eq, inArray, isNull, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { db, schema as s } from "@/db";
 import type { User } from "@/db/schema";
 
@@ -251,3 +251,103 @@ export async function courseRole(classId: string, userId: string) {
   return k.lecturer === userId ? "lecturer" : (k.komti ?? k.oldKomti) === userId ? "komti" : k.sipen === userId ? "sipen" : null;
 }
 
+
+/* ---------- Profile, leaving, deleting ---------- */
+
+const DEMO_LOCK = "Demo accounts can't be changed. Create your own account to try this.";
+
+export async function updateProfile(userId: string, p: { name: string; email: string; studentNo?: string | null; password?: string }): Promise<R> {
+  const [u] = await db.select().from(s.users).where(eq(s.users.id, userId)).limit(1);
+  if (!u) return no("Unknown account");
+  if (u.isDemo) return no(DEMO_LOCK);
+  const email = p.email.trim().toLowerCase();
+  if (email !== u.email) {
+    if (!(await verifyPassword(p.password ?? "", u.passwordHash))) return no("Enter your current password to change your email.");
+    const [taken] = await db.select({ id: s.users.id }).from(s.users).where(eq(s.users.email, email)).limit(1);
+    if (taken) return no("This email already has an account. Sign in instead.");
+  }
+  await db.update(s.users).set({ name: p.name.trim(), email, studentNo: u.role === "lecturer" ? u.studentNo : p.studentNo?.trim() || null }).where(eq(s.users.id, userId));
+  revalidateTag("catalog");
+  return { ok: true };
+}
+
+export async function changePassword(userId: string, current: string, next: string): Promise<R> {
+  const [u] = await db.select().from(s.users).where(eq(s.users.id, userId)).limit(1);
+  if (!u) return no("Unknown account");
+  if (u.isDemo) return no(DEMO_LOCK);
+  if (!(await verifyPassword(current, u.passwordHash))) return no("Your current password is wrong.");
+  await db.update(s.users).set({ passwordHash: await hashPassword(next) }).where(eq(s.users.id, userId));
+  return { ok: true };
+}
+
+/** Drops a member from a class group: membership, course enrollments and any SiPen role there. */
+async function dropMember(cohortId: string, userId: string) {
+  const ids = (await db.select({ id: s.classes.id }).from(s.classes).where(eq(s.classes.cohortId, cohortId))).map((r) => r.id);
+  if (ids.length) {
+    await db.delete(s.enrollments).where(and(eq(s.enrollments.userId, userId), inArray(s.enrollments.classId, ids)));
+    await db.update(s.classes).set({ sipenId: null }).where(and(inArray(s.classes.id, ids), eq(s.classes.sipenId, userId)));
+  }
+  await db.delete(s.cohortMembers).where(and(eq(s.cohortMembers.cohortId, cohortId), eq(s.cohortMembers.userId, userId)));
+}
+
+export async function leaveCohort(cohortId: string, userId: string): Promise<R> {
+  const [c] = await db.select().from(s.cohorts).where(eq(s.cohorts.id, cohortId)).limit(1);
+  if (!c || !(await isMember(cohortId, userId))) return no("You are not in this class group.");
+  if (c.komtiId === userId) return no("Hand over komti first, or delete the class group.");
+  const [u] = await db.select({ isDemo: s.users.isDemo }).from(s.users).where(eq(s.users.id, userId));
+  if (u?.isDemo) return no(DEMO_LOCK);
+  await dropMember(cohortId, userId);
+  return { ok: true };
+}
+
+export async function removeMember(cohortId: string, komti: string, userId: string): Promise<R> {
+  const c = await ownCohort(cohortId, komti);
+  if (!c) return no("Komti of this class group only");
+  if (userId === komti) return no("Hand over komti first, or delete the class group.");
+  await dropMember(cohortId, userId);
+  return { ok: true };
+}
+
+export async function deleteCohort(cohortId: string, komti: string, confirmName: string): Promise<R> {
+  const c = await ownCohort(cohortId, komti);
+  if (!c) return no("Komti of this class group only");
+  if (c.inviteCode === "DEMO24") return no(DEMO_LOCK);
+  if (confirmName.trim() !== c.name) return no("Type the class group name exactly to confirm.");
+  await db.delete(s.classes).where(eq(s.classes.cohortId, cohortId));
+  await db.delete(s.cohorts).where(eq(s.cohorts.id, cohortId));
+  await syncRole(komti);
+  revalidateTag("catalog");
+  return { ok: true };
+}
+
+export async function deleteAccount(userId: string, password: string): Promise<R> {
+  const [u] = await db.select().from(s.users).where(eq(s.users.id, userId)).limit(1);
+  if (!u) return no("Unknown account");
+  if (u.isDemo) return no(DEMO_LOCK);
+  if (!(await verifyPassword(password, u.passwordHash))) return no("Your current password is wrong.");
+  const [leads] = await db.select({ id: s.cohorts.id, others: sql<number>`(select count(*) from cohort_members m where m.cohort_id = ${s.cohorts.id} and m.user_id <> ${userId})` })
+    .from(s.cohorts).where(eq(s.cohorts.komtiId, userId)).limit(1);
+  if (leads && Number(leads.others) > 0) return no("Hand over komti first, or delete the class group.");
+  const [teaches] = await db.select({ id: s.classes.id }).from(s.classes).where(eq(s.classes.lecturerId, userId)).limit(1);
+  if (teaches) return no("Ask the komti to move your courses to another lecturer first.");
+  // Komti of an empty group: the group goes too.
+  const empty = await db.select({ id: s.cohorts.id }).from(s.cohorts).where(eq(s.cohorts.komtiId, userId));
+  for (const c of empty) { await db.delete(s.classes).where(eq(s.classes.cohortId, c.id)); await db.delete(s.cohorts).where(eq(s.cohorts.id, c.id)); }
+  // Keep other people's records, drop the pointer to this account.
+  await db.update(s.classes).set({ komtiId: null }).where(eq(s.classes.komtiId, userId));
+  await db.update(s.permissions).set({ decidedBy: null }).where(eq(s.permissions.decidedBy, userId));
+  await db.update(s.changeRequests).set({ decidedBy: null }).where(eq(s.changeRequests.decidedBy, userId));
+  await db.delete(s.changeRequests).where(eq(s.changeRequests.requestedBy, userId));
+  await db.update(s.events).set({ actorId: null }).where(eq(s.events.actorId, userId));
+  await db.delete(s.users).where(eq(s.users.id, userId));
+  revalidateTag("catalog");
+  return { ok: true };
+}
+
+/** Class groups this user belongs to, for the settings page. */
+export async function memberships(userId: string) {
+  return db.select({ id: s.cohorts.id, name: s.cohorts.name, program: s.cohorts.program, komtiId: s.cohorts.komtiId,
+    members: sql<number>`(select count(*) from cohort_members m where m.cohort_id = ${s.cohorts.id})` })
+    .from(s.cohortMembers).innerJoin(s.cohorts, eq(s.cohorts.id, s.cohortMembers.cohortId))
+    .where(eq(s.cohortMembers.userId, userId)).orderBy(asc(s.cohorts.name));
+}

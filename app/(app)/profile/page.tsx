@@ -15,10 +15,10 @@ export default async function ProfilePage() {
   const [profile, sipen, groups, t] = await Promise.all([getProfile(user.id), sipenCourses(user.id), myCohorts(user.id), getDict()]);
   const links = [
     ...(user.role === "komti" || sipen.length ? [{ href: "/manage", label: user.role === "komti" ? t.manage.title : t.manage.transferSipen, c: "bg-violet text-white" }] : []),
+    { href: "/settings", label: t.nav.settings, c: "bg-ink text-white" },
     { href: "/stream", label: t.stream.title, c: "bg-lilac" },
     { href: "/schedule", label: t.nav.schedule, c: "bg-white" },
     { href: "/rooms", label: t.nav.rooms, c: "bg-white" },
-    ...(user.role !== "lecturer" ? [{ href: "/join", label: t.auth.joinTitle, c: "bg-mint" }] : []),
   ];
   return (
     <>
