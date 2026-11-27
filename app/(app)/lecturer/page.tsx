@@ -6,6 +6,6 @@ export const metadata = { title: "Lecturer · ClassPause" };
 
 export default async function LecturerPage() {
   const user = await requireUser(["lecturer"]);
-  const { sessions, permissions } = await getLecturerView(user.id);
-  return <LecturerBoard name={user.name} sessions={sessions} permissions={permissions} />;
+  const { sessions, permissions, changes } = await getLecturerView(user.id);
+  return <LecturerBoard name={user.name} sessions={sessions} permissions={permissions} changes={changes} />;
 }

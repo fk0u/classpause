@@ -1,10 +1,10 @@
 import Link from "next/link";
+import { LiveProvider } from "@/components/live";
 import { eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { db, schema as s } from "@/db";
 import { getTodaySessions, getUnreadCount } from "@/lib/queries";
-import { LiveProvider, LiveDot } from "@/components/live";
 import { Avatar } from "@/components/avatar";
 import Dock, { DemoHeaderButtons } from "@/components/dock";
 import TopNav from "@/components/top-nav";
@@ -29,8 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="min-h-dvh bg-ink sm:p-4">
         <div className="mx-auto max-w-[1280px]">
           <header className="flex items-center gap-3 px-5 pb-6 pt-[max(1.25rem,env(safe-area-inset-top))] text-white">
-            <Link href="/" className="font-display text-2xl font-bold tracking-tight">ClassPause</Link>
-            <span className="hidden sm:block"><LiveDot /></span>
+            <Link href="/" className="flex items-center gap-1.5 font-display text-2xl font-extrabold tracking-tight"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet text-mint">✳</span>Class<span className="text-mint">Pause</span></Link>
             <TopNav role={user.role} unread={unread} />
             <span className="ml-auto md:hidden">{demo && <DemoHeaderButtons demo={demo} />}</span>
             <Link href="/profile" className="flex md:ml-auto items-center gap-3 rounded-full p-1 hover:bg-white/10 lg:pr-4">

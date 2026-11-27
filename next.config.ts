@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const config: NextConfig = {
   poweredByHeader: false,
   compress: true,
-  experimental: { optimizePackageImports: ["lucide-react", "motion"] },
+  experimental: { optimizePackageImports: ["lucide-react", "motion"], serverActions: { bodySizeLimit: "10mb" } },
   async headers() {
     return [
       {

@@ -92,14 +92,98 @@ export async function decidePermissionAction(input: unknown): Promise<ActionResu
   return r.ok ? { ok: true } : r;
 }
 
-export async function requestPermissionAction(input: unknown): Promise<ActionResult> {
+/** Permitly: a leave request may carry its letter now, or the letter comes later (within the deadline). */
+export async function requestPermissionAction(form: FormData): Promise<ActionResult> {
   const u = await currentUser();
   if (!u || u.role === "lecturer") return fail("Students only");
   if (!(await guard(`perm:${u.id}`))) return fail("Too many requests");
-  const p = permissionSchema.safeParse(input);
+  const p = permissionSchema.safeParse({ sessionId: form.get("sessionId"), type: form.get("type"), note: form.get("note") });
   if (!p.success) return zodFail(p.error);
-  const r = await P.requestPermission(p.data.sessionId, u.id, p.data.type, p.data.note);
+  let proof: { proofPath: string; proofName: string } | undefined;
+  const file = form.get("file");
+  if (file instanceof File && file.size > 0) {
+    const { saveUpload } = await import("@/lib/uploads");
+    const up = await saveUpload("proofs", file);
+    if (!up.ok) return fail(up.error);
+    proof = { proofPath: up.path, proofName: up.original };
+  }
+  const r = await P.requestPermission(p.data.sessionId, u.id, p.data.type, p.data.note, proof);
   return r.ok ? { ok: true, message: "Sent to your lecturer" } : r;
+}
+
+export async function uploadProofAction(form: FormData): Promise<ActionResult> {
+  const u = await currentUser();
+  if (!u) return fail("Sign in first");
+  const id = uuid.safeParse(form.get("permissionId"));
+  if (!id.success) return fail("Bad request");
+  const { saveUpload } = await import("@/lib/uploads");
+  const up = await saveUpload("proofs", form.get("file"));
+  if (!up.ok) return fail(up.error);
+  const { attachProof } = await import("@/lib/campus");
+  const r = await attachProof(id.data, u.id, up.path, up.original);
+  return r.ok ? { ok: true } : r;
+}
+
+export async function checkInAction(sessionId: unknown): Promise<ActionResult> {
+  const u = await currentUser();
+  const id = uuid.safeParse(sessionId);
+  if (!u || !id.success) return fail("Bad request");
+  if (!(await guard(`checkin:${u.id}`))) return fail("Too many requests");
+  const { checkIn } = await import("@/lib/campus");
+  const r = await checkIn(id.data, u.id);
+  return r.ok ? { ok: true } : r;
+}
+
+/** Komti posts the class activity photo while the class runs. */
+export async function uploadPhotoAction(form: FormData): Promise<ActionResult> {
+  const id = uuid.safeParse(form.get("sessionId"));
+  if (!id.success) return fail("Bad request");
+  const u = await requireKomtiOf(id.data);
+  if (!u) return fail("Komti of this class only");
+  const [ses] = await db.select().from(s.sessions).where(eq(s.sessions.id, id.data)).limit(1);
+  const now = Date.now();
+  if (!ses || now < +ses.startsAt - 15 * 60_000 || now > +ses.endsAt + 30 * 60_000) return fail("Class photo only while class runs.");
+  const { saveUpload } = await import("@/lib/uploads");
+  const up = await saveUpload("photos", form.get("file"));
+  if (!up.ok) return fail(up.error);
+  await db.update(s.sessions).set({ photoPath: up.path, photoAt: new Date() }).where(eq(s.sessions.id, id.data));
+  return { ok: true };
+}
+
+const markSchema = z.object({ sessionId: uuid, userId: uuid, status: z.enum(["present", "absent"]) });
+/** Komti or the class lecturer corrects one student's record. */
+export async function markAttendanceAction(input: unknown): Promise<ActionResult> {
+  const me = await currentUser();
+  const p = markSchema.safeParse(input);
+  if (!me || !p.success) return fail("Bad request");
+  const [k] = await db.select({ komti: s.classes.komtiId, lecturer: s.classes.lecturerId }).from(s.sessions)
+    .innerJoin(s.classes, eq(s.classes.id, s.sessions.classId)).where(eq(s.sessions.id, p.data.sessionId)).limit(1);
+  if (!k || (k.komti !== me.id && k.lecturer !== me.id)) return fail("Komti or lecturer only");
+  const { setAttendance } = await import("@/lib/campus");
+  await setAttendance(p.data.sessionId, p.data.userId, p.data.status, `manual:${me.role}`);
+  return { ok: true };
+}
+
+const changeSchema = z.object({ sessionId: uuid, reason: z.string().trim().min(3, "Say why (3+ characters)").max(160) });
+export async function requestChangeAction(input: unknown): Promise<ActionResult> {
+  const u = await currentUser();
+  if (!u || u.role !== "lecturer") return fail("Lecturers only");
+  const p = changeSchema.safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  const { requestChange } = await import("@/lib/campus");
+  const r = await requestChange(p.data.sessionId, u.id, p.data.reason);
+  return r.ok ? { ok: true } : r;
+}
+
+const decideChangeSchema = z.object({ requestId: uuid, decision: z.enum(["confirm", "reject"]), slotId: z.string().max(60).optional() });
+export async function decideChangeAction(input: unknown): Promise<ActionResult> {
+  const u = await currentUser();
+  if (!u || u.role !== "komti") return fail("Komti of this class only");
+  const p = decideChangeSchema.safeParse(input);
+  if (!p.success) return zodFail(p.error);
+  const { decideChange } = await import("@/lib/campus");
+  const r = await decideChange(p.data.requestId, u.id, p.data.decision, p.data.slotId);
+  return r.ok ? { ok: true } : r;
 }
 
 export async function submitQuizAction(input: unknown): Promise<ActionResult<{ code: string; correct: number; total: number }>> {
@@ -235,4 +319,16 @@ export async function resolveReportAction(id: unknown): Promise<ActionResult> {
   const { resolveReport } = await import("@/lib/rooms");
   await resolveReport(rid.data);
   return { ok: true };
+}
+
+export async function getAttendanceAction(sessionId: unknown) {
+  const me = await currentUser();
+  const id = uuid.safeParse(sessionId);
+  if (!me || !id.success) return null;
+  const [k] = await db.select({ komti: s.classes.komtiId, lecturer: s.classes.lecturerId }).from(s.sessions)
+    .innerJoin(s.classes, eq(s.classes.id, s.sessions.classId)).where(eq(s.sessions.id, id.data)).limit(1);
+  if (!k || (k.komti !== me.id && k.lecturer !== me.id)) return null;
+  const { attendanceList } = await import("@/lib/campus");
+  const r = await attendanceList(id.data);
+  return r && { meeting: r.meeting, rows: r.rows };
 }

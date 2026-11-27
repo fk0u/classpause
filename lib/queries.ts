@@ -4,6 +4,7 @@ import { and, desc, eq, gte, inArray, lt, sql, count } from "drizzle-orm";
 import { db, schema as s } from "@/db";
 import { startOfLocalDay } from "./time";
 import { quizFor } from "./quiz";
+import { meetingNumbers, recentChangeRequests } from "./campus";
 
 /* ---------- Catalog: slow-changing, cached across requests (tag "catalog") ---------- */
 
@@ -54,6 +55,10 @@ export async function getStudentView(userId: string) {
     ids.length ? db.select().from(s.permissions).where(and(eq(s.permissions.userId, userId), inArray(s.permissions.sessionId, ids))) : [],
     db.select({ n: count() }).from(s.attendanceReceipts).where(eq(s.attendanceReceipts.userId, userId)),
   ]);
+  const [att, meetings] = await Promise.all([
+    ids.length ? db.select().from(s.attendance).where(and(eq(s.attendance.userId, userId), inArray(s.attendance.sessionId, ids))) : [],
+    meetingNumbers(ids),
+  ]);
   return {
     sessions: sessions.map((x) => ({
       ...x,
@@ -63,6 +68,8 @@ export async function getStudentView(userId: string) {
       module: catalog.modules[x.classId] ? (({ quiz, ...m }) => ({ ...m, questions: quizFor(userId, x.id, quiz), bankSize: quiz.length }))(catalog.modules[x.classId]) : null,
       receipt: receipts.find((r) => r.sessionId === x.id) ?? null,
       permission: perms.find((p) => p.sessionId === x.id) ?? null,
+      attendance: att.find((a) => a.sessionId === x.id)?.status ?? null,
+      meeting: meetings.get(x.id) ?? 1,
     })),
     completedPauses: totals[0]?.n ?? 0,
   };
@@ -81,10 +88,18 @@ export async function getKomtiView(userId: string) {
       .where(inArray(s.attendanceReceipts.sessionId, ids)).groupBy(s.attendanceReceipts.sessionId) : [],
     ids.length ? db.select().from(s.events).where(inArray(s.events.sessionId, ids)).orderBy(desc(s.events.createdAt)).limit(12) : [],
   ]);
+  const [meetings, changes, attCounts] = await Promise.all([
+    meetingNumbers(ids), recentChangeRequests(classIds),
+    ids.length ? db.select({ sessionId: s.attendance.sessionId, status: s.attendance.status, n: count() }).from(s.attendance)
+      .where(inArray(s.attendance.sessionId, ids)).groupBy(s.attendance.sessionId, s.attendance.status) : [],
+  ]);
   return {
+    changes: changes.map((c) => ({ ...c.r, by: c.name, className: catalog.classes[c.ses.classId]?.name ?? "", startsAt: c.ses.startsAt, endsAt: c.ses.endsAt })),
     sessions: sessions.map((x) => ({
       ...x, klass: catalog.classes[x.classId], room: catalog.rooms[x.roomId],
       receipts: receiptCounts.find((r) => r.sessionId === x.id)?.n ?? 0,
+      meeting: meetings.get(x.id) ?? 1,
+      att: Object.fromEntries(attCounts.filter((a) => a.sessionId === x.id).map((a) => [a.status, a.n])) as Record<string, number>,
     })),
     permissions: perms.map((r) => ({ ...r.p, name: r.name, studentNo: r.studentNo, className: catalog.classes[sessions.find((x) => x.id === r.p.sessionId)!.classId]?.name })),
     feed,
@@ -99,8 +114,10 @@ export async function getLecturerView(userId: string) {
   const perms = ids.length ? await db.select({ p: s.permissions, name: s.users.name })
     .from(s.permissions).innerJoin(s.users, eq(s.users.id, s.permissions.userId))
     .where(inArray(s.permissions.sessionId, ids)).orderBy(desc(s.permissions.createdAt)) : [];
+  const [meetings, changes] = await Promise.all([meetingNumbers(ids), recentChangeRequests(classIds)]);
   return {
-    sessions: sessions.map((x) => ({ ...x, klass: catalog.classes[x.classId], room: catalog.rooms[x.roomId] })),
+    changes: changes.map((c) => ({ ...c.r, className: catalog.classes[c.ses.classId]?.name ?? "" })),
+    sessions: sessions.map((x) => ({ ...x, klass: catalog.classes[x.classId], room: catalog.rooms[x.roomId], meeting: meetings.get(x.id) ?? 1 })),
     permissions: perms.map((r) => ({ ...r.p, name: r.name, className: catalog.classes[sessions.find((x) => x.id === r.p.sessionId)!.classId]?.name })),
   };
 }

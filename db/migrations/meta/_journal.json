@@ -22,6 +22,13 @@
       "when": 1795756097567,
       "tag": "0002_rooms_facilities",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795758266619,
+      "tag": "0003_attendance_permitly_changes",
+      "breakpoints": true
     }
   ]
 }

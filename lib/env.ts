@@ -12,6 +12,7 @@ const schema = z.object({
   VAPID_SUBJECT: z.string().default("mailto:admin@classpause.test"),
   SUBMIS_PASSWORD: z.string().min(8).optional(),
   SUBMIS_DIR: z.string().default("./submissions"),
+  UPLOAD_DIR: z.string().default("./uploads"),
   DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
 });
 

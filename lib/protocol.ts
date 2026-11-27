@@ -8,6 +8,7 @@ import { proposeSlots } from "./slot-engine";
 import { sendLecturerPrompt } from "./notifier";
 import { notifyUsers, rosterOf, fmt } from "./notify";
 import { scoreQuiz } from "./quiz";
+import { campusTick, setAttendance, isHoliday, PROOF_WINDOW_H } from "./campus";
 import { atLocal, localParts, startOfLocalDay, fmtRange, fmtDay } from "./time";
 
 export const PROMPT_LEAD_MIN = 120; // H-2h
@@ -79,7 +80,11 @@ export async function promptSession(sessionId: string, now = new Date()) {
  * 1. materialise today's sessions; 2. prompt sessions entering H-2h; 3. expire missed SLAs.
  */
 export async function tick(now = new Date()) {
-  await ensureSessionsFor(now);
+  // Today and tomorrow exist as sessions so SiPenDosa can send the H-1 reminder; holidays get none.
+  if (!(await isHoliday(now))) await ensureSessionsFor(now);
+  const tomorrow = new Date(+now + 86_400_000);
+  if (!(await isHoliday(tomorrow))) await ensureSessionsFor(tomorrow);
+  await campusTick(now);
 
   const due = await db.select({ id: s.sessions.id }).from(s.sessions).where(and(
     eq(s.sessions.status, "scheduled"), isNull(s.sessions.promptedAt),
@@ -188,17 +193,20 @@ export async function submitQuiz(sessionId: string, userId: string, answers: { q
   const [rec] = inserted.length ? inserted
     : await db.select().from(s.attendanceReceipts).where(and(eq(s.attendanceReceipts.sessionId, sessionId), eq(s.attendanceReceipts.userId, userId)));
 
+  await setAttendance(sessionId, userId, "micropause", "micropause:receipt");
   publish({ type: "receipt", sessionId, classId: row.ses.classId, tone: "ok", message: "A student completed Micro-Pause" });
   return { ok: true as const, receipt: rec };
 }
 
-export async function requestPermission(sessionId: string, userId: string, type: "sick" | "dispensation", note: string) {
+export async function requestPermission(sessionId: string, userId: string, type: "sick" | "dispensation", note: string, proof?: { proofPath: string; proofName: string }) {
   const [enr] = await db.select({ classId: s.sessions.classId }).from(s.sessions)
     .innerJoin(s.enrollments, and(eq(s.enrollments.classId, s.sessions.classId), eq(s.enrollments.userId, userId)))
     .where(eq(s.sessions.id, sessionId)).limit(1);
   if (!enr) return { ok: false as const, error: "You are not enrolled in this class." };
-  await db.insert(s.permissions).values({ sessionId, userId, type, note })
-    .onConflictDoUpdate({ target: [s.permissions.sessionId, s.permissions.userId], set: { type, note, status: "pending", decidedAt: null, decidedBy: null } });
+  const proofDueAt = new Date(Date.now() + PROOF_WINDOW_H * 3_600_000);
+  const [perm] = await db.insert(s.permissions).values({ sessionId, userId, type, note, proofDueAt, ...(proof ?? {}), proofAt: proof ? new Date() : null })
+    .onConflictDoUpdate({ target: [s.permissions.sessionId, s.permissions.userId], set: { type, note, status: "pending", decidedAt: null, decidedBy: null, proofDueAt, ...(proof ? { ...proof, proofAt: new Date() } : {}) } }).returning();
+  await setAttendance(sessionId, userId, type === "sick" ? "sick" : "permit", "permitly:requested");
   publish({ type: "permission", kind: "request", sessionId, classId: enr.classId, tone: "info", message: "New leave request for the lecturer" });
   const k = await klassOf(enr.classId);
   const [who] = await db.select({ name: s.users.name }).from(s.users).where(eq(s.users.id, userId));
@@ -213,6 +221,7 @@ export async function decidePermission(permissionId: string, decision: "approved
   const [p] = await db.update(s.permissions).set({ status: decision, decidedBy: actorId, decidedAt: new Date() })
     .where(and(eq(s.permissions.id, permissionId), eq(s.permissions.status, "pending"))).returning();
   if (!p) return { ok: false as const, error: "Already decided." };
+  await setAttendance(p.sessionId, p.userId, decision === "rejected" ? "absent" : p.type === "sick" ? "sick" : "permit", `permitly:${decision}`);
   const [ses] = await db.select({ classId: s.sessions.classId }).from(s.sessions).where(eq(s.sessions.id, p.sessionId));
   publish({ type: "permission", kind: "decision", sessionId: p.sessionId, classId: ses.classId, tone: "ok", message: `Permission ${decision}` });
   const k = await klassOf(ses.classId);

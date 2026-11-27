@@ -6,16 +6,18 @@ import { Check, Lock, Radio, Coffee, Loader2, X, MapPin, Sparkles, Pin, Thermome
 import type { getKomtiView } from "@/lib/queries";
 import { lockSlotAction } from "@/app/actions";
 import PermissionQueue from "@/components/permission-queue";
+import { PhotoCard, AttendancePanel, ChangeRequests } from "@/components/session-tools";
 import { STATUS, TONE } from "@/components/status";
 import { SlaRing } from "@/components/countdown";
 import { Avatar } from "@/components/avatar";
 import { useLive } from "@/components/live";
 import { fmtRange, fmtDay, fmtTime } from "@/lib/time";
+import { PageHero } from "@/components/page-hero";
 import { useT, fmt } from "@/lib/i18n/client";
 
 type View = Awaited<ReturnType<typeof getKomtiView>>;
 
-export default function KomtiConsole({ sessions, permissions, feed }: View) {
+export default function KomtiConsole({ sessions, permissions, feed, changes }: View) {
   const pendingPerms = permissions.filter((p) => p.status === "pending");
   const timers = sessions.filter((x) => x.status === "pending");
   const resched = sessions.find((x) => x.status === "reschedule");
@@ -25,8 +27,7 @@ export default function KomtiConsole({ sessions, permissions, feed }: View) {
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <section className="min-w-0">
-        <p className="text-sm text-slate-500">{t.komti.kicker}</p>
-        <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{t.komti.title}</h1>
+        <PageHero kicker={t.komti.kicker} title={t.komti.title} />
 
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
@@ -53,9 +54,11 @@ export default function KomtiConsole({ sessions, permissions, feed }: View) {
             return (
               <motion.li layout key={x.id} className="relative">
                 <span aria-hidden className={`absolute -left-[26px] top-7 h-3 w-3 rounded-full ring-4 ring-paper ${tone.dot}`} />
-                <div className="flex items-center gap-4 rounded-[28px] bg-white p-5">
+                <div className="rounded-[28px] bg-white p-4 sm:p-5">
+                <div className="flex items-center gap-4">
                   <div className="min-w-0 flex-1">
-                    <p className="font-display text-xl font-semibold leading-tight">{x.klass.name}</p>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-violet">{fmt(t.campus.meeting, { n: x.meeting })}</p>
+                    <p className="font-display text-lg font-semibold leading-tight sm:text-xl">{x.klass.name}</p>
                     <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-slate-500">
                       <span className="font-mono">{fmtRange(x.startsAt, x.endsAt)}</span>
                       <span className="flex items-center gap-1"><MapPin size={13} />{x.room.code}</span>
@@ -74,6 +77,12 @@ export default function KomtiConsole({ sessions, permissions, feed }: View) {
                   </div>
                   {x.status === "pending" ? <SlaRing deadline={x.slaDeadline} size={60} /> : <Avatar name={x.klass.lecturerName} size={44} />}
                 </div>
+                <div className="mt-3 space-y-2">
+                  {["confirmed", "delayed"].includes(x.status) && Date.now() >= +new Date(x.startsAt) - 15 * 60_000 && Date.now() <= +new Date(x.endsAt) + 30 * 60_000 && <PhotoCard sessionId={x.id} photoPath={x.photoPath} />}
+                  {x.photoPath && !["confirmed", "delayed"].includes(x.status) && <PhotoCard sessionId={x.id} photoPath={x.photoPath} />}
+                  {x.status !== "rescheduled" && x.status !== "reschedule" && <AttendancePanel sessionId={x.id} summary={x.att} />}
+                </div>
+                </div>
               </motion.li>
             );
           })}
@@ -81,6 +90,7 @@ export default function KomtiConsole({ sessions, permissions, feed }: View) {
       </section>
 
       <aside className="space-y-6 lg:border-l lg:border-slate-200 lg:pl-8">
+        <ChangeRequests items={changes} canDecide />
         <PermissionQueue permissions={permissions} canDecide={false} />
         <div>
           <h2 className="font-display text-2xl font-semibold">{t.komti.activity}</h2>

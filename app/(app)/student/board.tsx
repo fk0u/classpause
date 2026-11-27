@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { checkInAction, uploadProofAction } from "@/app/actions";
+import { useLive } from "@/components/live";
 import { AnimatePresence, motion } from "motion/react";
-import { MapPin, Play, Music2, FileHeart, BadgeCheck, MoreHorizontal } from "lucide-react";
+import { MapPin, Play, Music2, FileHeart, BadgeCheck, MoreHorizontal, Hand, Paperclip, Loader2 } from "lucide-react";
 import type { getStudentView } from "@/lib/queries";
 import { STATUS, TONE } from "@/components/status";
 import { SlaRing } from "@/components/countdown";
 import { Avatar } from "@/components/avatar";
 import DayTimeline from "@/components/day-timeline";
-import { fmtRange, fmtDay } from "@/lib/time";
+import { fmtRange, fmtDay, fmtDateTime } from "@/lib/time";
 import MicroPause from "./micro-pause";
 import LeaveSheet from "./leave-sheet";
+import { PageHero } from "@/components/page-hero";
 import { useT, fmt } from "@/lib/i18n/client";
 
 type View = Awaited<ReturnType<typeof getStudentView>>;
@@ -29,9 +33,8 @@ export default function StudentBoard({ firstName, sessions, completedPauses }: V
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <section>
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-sm text-slate-500">{fmt(t.student.hi, { name: firstName })} · {fmtDay(new Date(), t.locale)}</p>
-            <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{t.student.title}</h1>
+          <div className="w-full min-w-0">
+            <PageHero kicker={<>{fmt(t.student.hi, { name: firstName })} · {fmtDay(new Date(), t.locale)}</>} title={t.student.title} />
           </div>
         </div>
 
@@ -89,13 +92,25 @@ function Stat({ n, label, cls, badge }: { n: number; label: string; cls: string;
 
 function SessionCard({ x, onLeave }: { x: Ses; onLeave: () => void }) {
   const t = useT();
+  const { toast } = useLive();
+  const router = useRouter();
+  const [busy, start] = useTransition();
   const st = { ...STATUS[x.status], ...t.status[x.status] };
   const tone = TONE[st.tone];
+  const now = Date.now();
+  const live = ["scheduled", "pending", "confirmed", "delayed"].includes(x.status) && now >= +new Date(x.startsAt) - 15 * 60_000 && now <= +new Date(x.endsAt);
+  const attLabel = x.attendance ? t.campus[x.attendance] : null;
+  const upload = (f: File) => start(async () => {
+    const fd = new FormData(); fd.set("permissionId", x.permission!.id); fd.set("file", f);
+    const r = await uploadProofAction(fd);
+    if (r.ok) { toast(t.campus.letterIn, "ok"); router.refresh(); } else toast(r.error, "warn");
+  });
   return (
-    <div className="rounded-[28px] bg-white p-5 shadow-[0_1px_0_rgba(15,23,42,0.04)]">
+    <div className="rounded-[28px] bg-white p-4 shadow-[0_1px_0_rgba(15,23,42,0.04)] sm:p-5">
+      <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-violet">{fmt(t.campus.meeting, { n: x.meeting })}</p>
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">
-          <h3 className="font-display text-2xl font-semibold leading-tight">{x.klass.name}</h3>
+          <h3 className="font-display text-xl font-semibold leading-tight sm:text-2xl">{x.klass.name}</h3>
           <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
             <span className="font-mono">{fmtRange(x.startsAt, x.endsAt)}{x.delayMinutes ? ` +${x.delayMinutes}m` : ""}</span>
             <span className="flex items-center gap-1"><MapPin size={13} />{x.room.code}</span>
@@ -113,14 +128,37 @@ function SessionCard({ x, onLeave }: { x: Ses; onLeave: () => void }) {
         </div>
       )}
 
+      {live && x.attendance !== "present" && !x.permission && (
+        <button disabled={busy} onClick={() => start(async () => { const r = await checkInAction(x.id); if (r.ok) { toast(t.campus.checkedIn, "ok"); router.refresh(); } else toast(r.error, "warn"); })}
+          className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-violet font-semibold text-white disabled:opacity-50">
+          {busy ? <Loader2 size={16} className="animate-spin" /> : <Hand size={17} />} {t.campus.checkIn}
+        </button>
+      )}
+
+      {x.permission && x.permission.status !== "rejected" && (
+        <div className={`mt-3 flex flex-wrap items-center gap-2 rounded-2xl p-3 text-sm ${x.permission.proofPath ? "bg-mint" : x.permission.status === "expired" ? "bg-rose" : "bg-butter"}`}>
+          <Paperclip size={15} className="shrink-0" />
+          <span className="min-w-0 flex-1 font-medium">
+            {x.permission.proofPath ? t.campus.letterIn : x.permission.status === "expired" ? t.campus.expired : fmt(t.campus.letterDue, { when: fmtDateTime(x.permission.proofDueAt ?? x.permission.createdAt, t.locale) })}
+          </span>
+          {!x.permission.proofPath && x.permission.status !== "expired" && (
+            <label className="flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full bg-ink px-3 text-xs font-semibold text-white">
+              {busy ? <Loader2 size={13} className="animate-spin" /> : <Paperclip size={13} />} {t.campus.letterUpload}
+              <input type="file" accept="application/pdf,image/*" className="sr-only" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+            </label>
+          )}
+        </div>
+      )}
+
       <div className="mt-4 flex flex-wrap items-center gap-2">
+        {attLabel && <span className={`rounded-full px-3 py-2 text-xs font-bold uppercase tracking-wide ${x.attendance === "absent" ? "bg-rose text-rose-deep" : "bg-mint text-mint-deep"}`}>{attLabel}</span>}
         <motion.span key={x.status} initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
           className={`rounded-full px-4 py-2 text-sm font-medium ${tone.chip}`}>{st.label} {st.emoji}</motion.span>
         {x.receipt && <span className="flex items-center gap-1.5 rounded-full bg-mint px-4 py-2 text-sm font-medium text-mint-deep"><BadgeCheck size={15} /> {x.receipt.code} · {x.receipt.correct}/{x.receipt.total}</span>}
         <span className="ml-auto flex items-center gap-2">
           <Avatar name={x.klass.lecturerName} size={34} />
           {x.permission ? (
-            <span className="rounded-full bg-paper px-3 py-2 text-xs font-medium text-slate-600">{x.permission.type === "sick" ? t.leave.sick : t.leave.dispensation} · {x.permission.status === "approved" ? t.komti.excused : x.permission.status === "rejected" ? t.komti.declined : "⏳"}</span>
+            <span className="rounded-full bg-paper px-3 py-2 text-xs font-medium text-slate-600">{x.permission.type === "sick" ? t.leave.sick : t.leave.dispensation} · {x.permission.status === "approved" ? t.komti.excused : x.permission.status === "rejected" ? t.komti.declined : x.permission.status === "expired" ? t.campus.absent : "⏳"}</span>
           ) : !x.receipt && (
             <button onClick={onLeave} aria-label={t.leave.title} title={t.leave.title}
               className="flex h-10 items-center gap-1.5 rounded-full bg-paper px-3 text-sm font-medium text-slate-700 hover:bg-slate-200">

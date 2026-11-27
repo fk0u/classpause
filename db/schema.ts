@@ -7,7 +7,9 @@ export const sessionStatusEnum = pgEnum("session_status", [
   "scheduled", "pending", "confirmed", "delayed", "reschedule", "rescheduled", "micropause",
 ]);
 export const permissionTypeEnum = pgEnum("permission_type", ["sick", "dispensation"]);
-export const permissionStatusEnum = pgEnum("permission_status", ["pending", "approved", "rejected"]);
+export const permissionStatusEnum = pgEnum("permission_status", ["pending", "approved", "rejected", "expired"]);
+export const attendanceStatusEnum = pgEnum("attendance_status", ["present", "permit", "sick", "absent", "micropause"]);
+export const changeStatusEnum = pgEnum("change_status", ["pending", "confirmed", "rejected", "cancelled"]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -78,6 +80,13 @@ export const sessions = pgTable("sessions", {
   tokenHash: text("token_hash"),
   proposals: jsonb("proposals").$type<SlotProposal[]>(),
   lockedSlot: jsonb("locked_slot").$type<SlotProposal>(),
+  /** Class activity photo the komti must upload while the class runs. */
+  photoPath: text("photo_path"),
+  photoAt: timestamp("photo_at", { withTimezone: true }),
+  photoRemindedAt: timestamp("photo_reminded_at", { withTimezone: true }),
+  /** SiPenDosa reminders already sent to the lecturer (H-1 evening, H-0 morning). */
+  remindedH1At: timestamp("reminded_h1_at", { withTimezone: true }),
+  remindedH0At: timestamp("reminded_h0_at", { withTimezone: true }),
   version: integer("version").notNull().default(0),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
@@ -118,6 +127,12 @@ export const permissions = pgTable("permissions", {
   status: permissionStatusEnum("status").notNull().default("pending"),
   decidedBy: uuid("decided_by").references(() => users.id),
   decidedAt: timestamp("decided_at", { withTimezone: true }),
+  /** Permitly: the supporting letter (doctor's note, dispensation letter). It may come later, but not after proofDueAt. */
+  proofPath: text("proof_path"),
+  proofName: text("proof_name"),
+  proofAt: timestamp("proof_at", { withTimezone: true }),
+  proofDueAt: timestamp("proof_due_at", { withTimezone: true }),
+  proofRemindedAt: timestamp("proof_reminded_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   uniqueIndex("permissions_session_user_uq").on(t.sessionId, t.userId),
@@ -176,6 +191,35 @@ export const facilityReports = pgTable("facility_reports", {
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [index("facility_created_idx").on(t.createdAt)]);
+
+/** One row per student per session: the official attendance record. */
+export const attendance = pgTable("attendance", {
+  sessionId: uuid("session_id").notNull().references(() => sessions.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: attendanceStatusEnum("status").notNull(),
+  source: text("source").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [primaryKey({ columns: [t.sessionId, t.userId] }), index("attendance_user_idx").on(t.userId)]);
+
+/** A lecturer asks to move a class; the komti confirms one of the conflict-free slots. */
+export const changeRequests = pgTable("change_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sessionId: uuid("session_id").notNull().references(() => sessions.id, { onDelete: "cascade" }),
+  requestedBy: uuid("requested_by").notNull().references(() => users.id),
+  reason: text("reason").notNull(),
+  proposals: jsonb("proposals").$type<SlotProposal[]>().notNull(),
+  chosen: jsonb("chosen").$type<SlotProposal>(),
+  status: changeStatusEnum("status").notNull().default("pending"),
+  decidedBy: uuid("decided_by").references(() => users.id),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [index("change_requests_status_idx").on(t.status)]);
+
+/** Campus holidays: SiPenDosa skips reminders and the clock skips sessions on these dates (YYYY-MM-DD, WITA). */
+export const holidays = pgTable("holidays", {
+  date: text("date").primaryKey(),
+  name: text("name").notNull(),
+});
 
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;

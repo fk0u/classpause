@@ -7,18 +7,21 @@
   --color-emerald: #10B981;
   --color-amber: #F59E0B;
   --color-crimson: #EF4444;
-  --color-ink: #0B0B0F;
-  --color-paper: #F4F4F1;
-  --color-mint: #CFF1D8;
-  --color-mint-deep: #15803D;
-  --color-lilac: #EBD3F8;
-  --color-lilac-deep: #7E3AF2;
-  --color-butter: #F9E7AE;
-  --color-butter-deep: #A16207;
-  --color-sky: #D3F0F8;
-  --color-sky-deep: #0E7490;
-  --color-rose: #FCD5DE;
-  --color-rose-deep: #BE123C;
+  /* Brand v3: black, electric violet, lime, pink (EN: "Learn, grow, achieve" reference). */
+  --color-ink: #09090B;
+  --color-paper: #F2F0FC;
+  --color-violet: #6044FF;
+  --color-violet-deep: #3B22D6;
+  --color-mint: #A0FF83;
+  --color-mint-deep: #1D6B12;
+  --color-lilac: #ED9AFF;
+  --color-lilac-deep: #8A1FAE;
+  --color-butter: #FFE47A;
+  --color-butter-deep: #8A5A00;
+  --color-sky: #C9C1FF;
+  --color-sky-deep: #3B22D6;
+  --color-rose: #FFB1C8;
+  --color-rose-deep: #B4123F;
   --font-display: var(--font-outfit), var(--font-jakarta), system-ui, sans-serif;
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
@@ -71,3 +74,9 @@ body { background: var(--color-canvas); color: var(--color-navy); }
 @media (prefers-reduced-motion: reduce) {
   .aurora, .shine::after, .scanline { animation: none; }
 }
+
+/* ---------- Brand v3 helpers ---------- */
+.scribble path { stroke-dasharray: 600; stroke-dashoffset: 600; animation: draw 1.1s ease-out .2s forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.chip-tilt { transform: rotate(-6deg); }
+@media (prefers-reduced-motion: reduce) { .scribble path { animation: none; stroke-dashoffset: 0; } }
