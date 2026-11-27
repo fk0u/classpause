@@ -90,7 +90,7 @@ function GroupView({ g, me, origin }: { g: Group; me: string; origin: string }) 
           <Field label={t.manage.code} name="code" placeholder="IF2101" required className="bg-white font-mono uppercase" />
           <Field label={t.manage.course} name="name" required className="bg-white" />
           <Field label={t.manage.lecturer} name="lecturerName" required className="bg-white" />
-          <Field label={t.manage.lecturerEmail} name="lecturerEmail" type="email" required className="bg-white" />
+          <Field label={t.manage.lecturerEmail} hint={t.auth.optional} name="lecturerEmail" type="email" className="bg-white" />
           <Field label={t.manage.credits} name="credits" type="number" min={1} max={6} defaultValue={3} required className="bg-white" />
           <div className="flex items-end gap-2">
             {g.courses.length > 0 && <button type="button" onClick={() => setAdding(false)} className="flex min-h-12 items-center rounded-full bg-white px-4 font-semibold"><X size={16} /></button>}
@@ -164,7 +164,7 @@ function CourseCard({ c, g, me, origin }: { c: Course; g: Group; me: string; ori
         <div className="min-w-0 flex-1">
           <p className="font-mono text-xs font-semibold text-violet">{c.code} · {c.credits} SKS</p>
           <p className="font-display text-xl font-bold leading-tight">{c.name}</p>
-          <p className="truncate text-sm text-ink/60">{c.lecturer.name} · {c.lecturer.email}</p>
+          <p className="truncate text-sm text-ink/60">{c.lecturer.name}{c.lecturer.email ? ` · ${c.lecturer.email}` : ""}</p>
         </div>
         {g.isKomti && <button onClick={() => setEdit(!edit)} aria-label={t.common.save} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-paper"><Pencil size={15} /></button>}
       </div>
@@ -187,7 +187,7 @@ function CourseCard({ c, g, me, origin }: { c: Course; g: Group; me: string; ori
             <Field label={t.manage.lecturer} name="lecturerName" defaultValue={c.lecturer.name} required />
             <Field label={t.manage.credits} name="credits" type="number" min={1} max={6} defaultValue={c.credits} required />
           </div>
-          <Field label={t.manage.lecturerEmail} name="lecturerEmail" type="email" defaultValue={c.lecturer.email} required />
+          <Field label={t.manage.lecturerEmail} hint={t.auth.optional} name="lecturerEmail" type="email" defaultValue={c.lecturer.email} />
           <FormError msg={err} />
           <div className="flex gap-2">
             <button type="button" disabled={busy} onClick={() => { if (confirm(t.manage.confirmRemove)) run(() => act.removeCourseAction(c.id)); }}

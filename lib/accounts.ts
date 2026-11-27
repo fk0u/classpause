@@ -36,8 +36,10 @@ export async function register(input: { name: string; email: string; password: s
   if (input.claim) {
     const [u] = await db.select().from(s.users).where(and(eq(s.users.claimCode, input.claim.trim().toUpperCase()), isNull(s.users.passwordHash))).limit(1);
     if (!u) return no("This lecturer code is invalid or already used.");
-    if (u.email !== email) return no("Use the email your komti registered for you.");
-    const [done] = await db.update(s.users).set({ passwordHash, claimCode: null, name: input.name.trim() || u.name }).where(eq(s.users.id, u.id)).returning();
+    // The komti may not know the lecturer's email, so the code alone proves the invite; the lecturer picks their own email.
+    const [other] = await db.select({ id: s.users.id }).from(s.users).where(and(eq(s.users.email, email), ne(s.users.id, u.id))).limit(1);
+    if (other) return no("This email already has an account. Sign in instead.");
+    const [done] = await db.update(s.users).set({ passwordHash, claimCode: null, email, name: input.name.trim() || u.name }).where(eq(s.users.id, u.id)).returning();
     return { ok: true, data: done };
   }
   const [taken] = await db.select({ id: s.users.id }).from(s.users).where(eq(s.users.email, email)).limit(1);
@@ -143,16 +145,23 @@ async function ownCohort(cohortId: string, komti: string) {
   return c ?? null;
 }
 
-/** Reuses a lecturer account with this email, or creates an unclaimed one with a claim code. */
-export async function upsertLecturer(name: string, email: string): Promise<R<string>> {
-  const e = email.trim().toLowerCase();
-  const [u] = await db.select().from(s.users).where(eq(s.users.email, e)).limit(1);
-  if (u) return u.role === "lecturer" ? { ok: true, data: u.id } : no("This email belongs to a student account.");
-  const [l] = await db.insert(s.users).values({ name: name.trim(), email: e, role: "lecturer", claimCode: newCode(8) }).returning();
+/** Placeholder address for a lecturer added without an email; replaced when they claim the account. */
+export const PENDING_DOMAIN = "@pending.classpause.invalid";
+export const isPendingEmail = (e: string) => e.endsWith(PENDING_DOMAIN);
+
+/** Reuses a lecturer account with this email, or creates an unclaimed one with a claim code. The email is optional. */
+export async function upsertLecturer(name: string, email?: string | null): Promise<R<string>> {
+  const e = email?.trim().toLowerCase();
+  if (e) {
+    const [u] = await db.select().from(s.users).where(eq(s.users.email, e)).limit(1);
+    if (u) return u.role === "lecturer" ? { ok: true, data: u.id } : no("This email belongs to a student account.");
+  }
+  const claimCode = newCode(8);
+  const [l] = await db.insert(s.users).values({ name: name.trim(), email: e || `lecturer-${claimCode.toLowerCase()}${PENDING_DOMAIN}`, role: "lecturer", claimCode }).returning();
   return { ok: true, data: l.id };
 }
 
-export async function addCourse(cohortId: string, komti: string, c: { code: string; name: string; credits: number; lecturerName: string; lecturerEmail: string }): Promise<R<string>> {
+export async function addCourse(cohortId: string, komti: string, c: { code: string; name: string; credits: number; lecturerName: string; lecturerEmail?: string | null }): Promise<R<string>> {
   const co = await ownCohort(cohortId, komti);
   if (!co) return no("Komti of this class group only");
   const lec = await upsertLecturer(c.lecturerName, c.lecturerEmail);
@@ -167,12 +176,21 @@ export async function addCourse(cohortId: string, komti: string, c: { code: stri
   return { ok: true, data: k.id };
 }
 
-export async function updateCourse(classId: string, komti: string, c: { name: string; credits: number; lecturerName: string; lecturerEmail: string }): Promise<R> {
+export async function updateCourse(classId: string, komti: string, c: { name: string; credits: number; lecturerName: string; lecturerEmail?: string | null }): Promise<R> {
   const [k] = await db.select().from(s.classes).innerJoin(s.cohorts, eq(s.cohorts.id, s.classes.cohortId)).where(and(eq(s.classes.id, classId), eq(s.cohorts.komtiId, komti))).limit(1);
   if (!k) return no("Komti of this class group only");
-  const lec = await upsertLecturer(c.lecturerName, c.lecturerEmail);
-  if (!lec.ok) return lec;
-  await db.update(s.classes).set({ name: c.name.trim(), credits: c.credits, lecturerId: lec.data! }).where(eq(s.classes.id, classId));
+  const [cur] = await db.select().from(s.users).where(eq(s.users.id, k.classes.lecturerId)).limit(1);
+  const email = c.lecturerEmail?.trim().toLowerCase();
+  let lecturerId = cur.id;
+  if (email && email !== cur.email) {
+    const lec = await upsertLecturer(c.lecturerName, email);
+    if (!lec.ok) return lec;
+    lecturerId = lec.data!;
+  } else if (!cur.passwordHash && c.lecturerName.trim() !== cur.name) {
+    // Unclaimed lecturer: the komti may fix the name or fill in an email later.
+    await db.update(s.users).set({ name: c.lecturerName.trim() }).where(eq(s.users.id, cur.id));
+  }
+  await db.update(s.classes).set({ name: c.name.trim(), credits: c.credits, lecturerId }).where(eq(s.classes.id, classId));
   revalidateTag("catalog");
   return { ok: true };
 }
@@ -231,7 +249,7 @@ export async function manageView(userId: string) {
       members,
       courses: courses.map(({ k, lec }) => ({
         id: k.id, code: k.code, name: k.name, credits: k.credits, sipenId: k.sipenId,
-        lecturer: { name: lec.name, email: lec.email, claimCode: isKomti ? lec.claimCode : null },
+        lecturer: { name: lec.name, email: isPendingEmail(lec.email) ? "" : lec.email, claimCode: isKomti ? lec.claimCode : null },
         meetings: meetings.filter((m) => m.m.classId === k.id).map((m) => ({ id: m.m.id, day: m.m.day, startMin: m.m.startMin, endMin: m.m.endMin, room: m.room })),
       })),
     });

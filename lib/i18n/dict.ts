@@ -110,7 +110,7 @@ const en = {
   auth: {
     signIn: "Sign in", signUp: "Create account", email: "Campus email", password: "Password", name: "Full name", studentNo: "Student ID (NIM)",
     optional: "optional", pwHint: "At least 8 characters", noAccount: "New here?", haveAccount: "Already have an account?",
-    claim: "Lecturer code", claimLead: "Your komti added you as a lecturer. Set a password to open your classes.",
+    claim: "Lecturer code", claimLead: "Your komti or SiPen added you as a lecturer. Use any email you like and set a password to open your classes.",
     demo: "Try the demo", demoLead: "Demo campus with synthetic data. Pick a role:", back: "Back to sign in",
     welcome: "Welcome back.", welcomeLead: "Sign in to see whether your class is on, your class stream and your attendance.",
     joinTitle: "Join your class group", joinLead: "Ask your komti for the 6-letter invite code.", code: "Invite code", join: "Join",
@@ -264,7 +264,7 @@ const id: DeepString<Dict> = {
   auth: {
     signIn: "Masuk", signUp: "Buat akun", email: "Email kampus", password: "Kata sandi", name: "Nama lengkap", studentNo: "NIM",
     optional: "opsional", pwHint: "Minimal 8 karakter", noAccount: "Baru di sini?", haveAccount: "Sudah punya akun?",
-    claim: "Kode dosen", claimLead: "Komti sudah menambahkan Anda sebagai dosen. Buat kata sandi untuk membuka kelas Anda.",
+    claim: "Kode dosen", claimLead: "Komti atau SiPen sudah menambahkan Anda sebagai dosen. Pakai email apa saja dan buat kata sandi untuk membuka kelas Anda.",
     demo: "Coba demo", demoLead: "Kampus demo dengan data sintetis. Pilih peran:", back: "Kembali ke halaman masuk",
     welcome: "Selamat datang kembali.", welcomeLead: "Masuk untuk melihat kelas jadi atau tidak, stream kelas, dan presensimu.",
     joinTitle: "Gabung ke kelasmu", joinLead: "Minta kode undangan 6 huruf ke komti.", code: "Kode undangan", join: "Gabung",
@@ -310,7 +310,6 @@ const id: DeepString<Dict> = {
     "Wrong email or password.": "Email atau kata sandi salah.",
     "This email already has an account. Sign in instead.": "Email ini sudah punya akun. Silakan masuk.",
     "This lecturer code is invalid or already used.": "Kode dosen tidak valid atau sudah dipakai.",
-    "Use the email your komti registered for you.": "Gunakan email yang didaftarkan komti untuk Anda.",
     "No class group uses this code.": "Tidak ada kelas dengan kode ini.",
     "Komti of this class group only": "Hanya komti kelas ini",
     "Komti or this course's SiPen only": "Hanya komti atau SiPen mata kuliah ini",

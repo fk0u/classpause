@@ -103,7 +103,7 @@ const courseSchema = z.object({
   name: z.string().trim().min(2).max(80),
   credits: z.coerce.number().int().min(1).max(6),
   lecturerName: z.string().trim().min(2, "Enter the lecturer's name").max(80),
-  lecturerEmail: email,
+  lecturerEmail: z.union([z.literal(""), email]).optional(),
 });
 export async function addCourseAction(input: unknown) {
   const p = courseSchema.extend({ cohortId: uuid }).safeParse(input);
